@@ -107,20 +107,21 @@ void spiBegin(uint8_t irq, uint8_t rst)
     
     // 2. Initialize the SPI bus (Host)
     const spi_bus_config_t buscfg = {
-        .mosi_io_num = CONFIG_SPI_MOSI_GPIO,
-        .miso_io_num = CONFIG_SPI_MISO_GPIO,
+        // --- These must be in the exact order as declared in the C header ---
+        .mosi_io_num = CONFIG_SPI_MOSI_GPIO, // (or data0_io_num)
+        .miso_io_num = CONFIG_SPI_MISO_GPIO, // (or data1_io_num)
         .sclk_io_num = CONFIG_SPI_SCLK_GPIO,
-        .quadwp_io_num = -1,
-        .quadhd_io_num = -1,
+        .quadwp_io_num = -1,                 // (or data2_io_num)
+        .quadhd_io_num = -1,                 // (or data3_io_num)
         .data4_io_num = -1,
         .data5_io_num = -1,
         .data6_io_num = -1,
         .data7_io_num = -1,
-        .max_transfer_sz = 0, // 0 for default (4092 bytes)
-        .data_io_default_level = 0,
-        .flags = 0,
-        .isr_cpu_id = 0,
-        .intr_flags = 0,
+        .data_io_default_level = false, // <-- Fix: Corrected position and initialized
+        .max_transfer_sz = 0,           // <-- Fix: Corrected position
+        .flags = 0,                     // <-- Fix: Corrected position and initialized
+        .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO, // <-- Fix: Corrected position and initialized
+        .intr_flags = 0,                // <-- Fix: Corrected position and initialized
     };
     
     // Initialize the bus (Host ID)
@@ -154,12 +155,12 @@ static void change_spi_speed(int speed_hz) {
         .cs_ena_posttrans = 0,
         .clock_speed_hz = speed_hz,
         .input_delay_ns = 0,
-        .spics_io_num = (int)_ss, 
+        .sample_point = SPI_SAMPLING_POINT_PHASE_0,    // <-- Fix: Corrected position
+        .spics_io_num = (int)_ss,
         .flags = 0,
         .queue_size = 7,
-        .sample_point = 0,
-        .pre_cb = NULL,
-        .post_cb = NULL
+        .pre_cb = NULL,       // <-- Fix: Callbacks must come before sample_point
+        .post_cb = NULL,      // <-- Fix: Callbacks must come before sample_point
     };
     
     ESP_ERROR_CHECK(spi_bus_add_device(SPI_HOST_ID, &devcfg, &dw3000_spi_device));
@@ -189,11 +190,12 @@ void readBytes(uint8_t cmd, uint16_t offset, uint8_t data[], uint16_t n) {
         .flags = 0,
         .cmd = 0,
         .addr = 0,
-        .length = (size_t)headerLen * 8, // Fix: Narrowing conversion
+        .length = (size_t)headerLen * 8, 
         .rxlength = 0,
+        .override_freq_hz = 0,  // <-- Fix: Added missing field and positioned correctly
+        .user = NULL,           // <-- Fix: Moved user field up
         .tx_buffer = header,
         .rx_buffer = NULL,
-        .user = NULL,
     };
     ESP_ERROR_CHECK(spi_device_polling_transmit(dw3000_spi_device, &header_t));
 
@@ -204,9 +206,10 @@ void readBytes(uint8_t cmd, uint16_t offset, uint8_t data[], uint16_t n) {
         .addr = 0,
         .length = (size_t)n * 8,          // Fix: Narrowing conversion
         .rxlength = (size_t)n * 8,        // Fix: Narrowing conversion
+        .override_freq_hz = 0,
+        .user = NULL,
         .tx_buffer = NULL,
         .rx_buffer = data,
-        .user = NULL,
     };
     
     ESP_ERROR_CHECK(spi_device_polling_transmit(dw3000_spi_device, &data_t));
@@ -266,9 +269,11 @@ void writeBytes(uint8_t cmd, uint16_t offset, uint8_t data[], uint16_t data_size
         .addr = 0,
         .length = (size_t)(headerLen + data_size) * 8, // Fix: Narrowing conversion
         .rxlength = 0,
+        .override_freq_hz = 0,
+        .user = NULL,
         .tx_buffer = tx_buffer,
         .rx_buffer = NULL,
-        .user = NULL,
+        
     };
 
     ESP_ERROR_CHECK(spi_device_polling_transmit(dw3000_spi_device, &t));
@@ -499,9 +504,10 @@ int readfromspi(uint16_t headerLength, uint8_t *headerBuffer, uint16_t readLengt
         .addr = 0,
         .length = (size_t)headerLength * 8, // Fix: Narrowing conversion
         .rxlength = 0,
+        .override_freq_hz = 0,
+        .user = NULL,
         .tx_buffer = headerBuffer,
         .rx_buffer = NULL,
-        .user = NULL,
     };
     ESP_ERROR_CHECK(spi_device_polling_transmit(dw3000_spi_device, &header_t));
 
@@ -512,9 +518,10 @@ int readfromspi(uint16_t headerLength, uint8_t *headerBuffer, uint16_t readLengt
         .addr = 0,
         .length = (size_t)readLength * 8,       // Fix: Narrowing conversion
         .rxlength = (size_t)readLength * 8,     // Fix: Narrowing conversion
+        .override_freq_hz = 0,
+        .user = NULL,
         .tx_buffer = NULL,
         .rx_buffer = readBuffer,
-        .user = NULL,
     };
     ESP_ERROR_CHECK(spi_device_polling_transmit(dw3000_spi_device, &read_t));
     esp_rom_delay_us(5);
@@ -534,9 +541,10 @@ int writetospi(uint16_t headerLength, uint8_t *headerBuffer, uint16_t bodyLength
         .addr = 0,
         .length = (size_t)(headerLength + bodyLength) * 8, // Fix: Narrowing conversion
         .rxlength = 0,
+        .override_freq_hz = 0,
+        .user = NULL,
         .tx_buffer = tx_buffer,
         .rx_buffer = NULL,
-        .user = NULL,
     };
 
     ESP_ERROR_CHECK(spi_device_polling_transmit(dw3000_spi_device, &t));
