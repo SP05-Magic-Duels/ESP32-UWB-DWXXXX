@@ -10,6 +10,10 @@
  *
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <dw3000_device_api.h>
 #include <dw3000_port.h>
 // ---------------------------------------------------------------------------
@@ -52,14 +56,13 @@ portMUX_TYPE my_mutex = portMUX_INITIALIZER_UNLOCKED;
 decaIrqStatus_t decamutexon(void)
 {
     portENTER_CRITICAL(&my_mutex);
-    /*portDISABLE_INTERRUPTS();
+    portDISABLE_INTERRUPTS();
     decaIrqStatus_t s = port_GetEXT_IRQStatus();
 
     if(s) {
         port_DisableEXT_IRQ(); //disable the external interrupt line
     }
     return s ;   // return state before disable, value is used to re-enable in decamutexoff call
-    */
 }
 
 /*! ------------------------------------------------------------------------------------------------------------------
@@ -86,3 +89,7 @@ void decamutexoff(decaIrqStatus_t s)        // put a function here that re-enabl
         port_EnableEXT_IRQ();
     }*/
 }
+
+#ifdef __cplusplus
+}
+#endif

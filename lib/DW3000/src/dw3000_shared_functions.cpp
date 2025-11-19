@@ -10,6 +10,10 @@
  *
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "dw3000_shared_functions.h"
 
 /*! ------------------------------------------------------------------------------------------------------------------
@@ -450,3 +454,7 @@ void resp_msg_set_ts(uint8_t *ts_field, const uint64_t ts)
         ts_field[i] = (uint8_t)(ts >> (i * 8));
     }
 }
+
+#ifdef __cplusplus
+}
+#endif

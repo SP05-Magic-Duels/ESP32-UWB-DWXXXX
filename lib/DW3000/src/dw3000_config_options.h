@@ -9,6 +9,9 @@
  * All rights reserved.
  *
  */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "dw3000_device_api.h"
 
@@ -242,3 +245,7 @@
 extern char dist_str[16];
 
 #endif /* EXAMPLES_CONFIG_OPTIONS_H_ */
+
+#ifdef __cplusplus
+}
+#endif

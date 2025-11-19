@@ -13,7 +13,6 @@
 #ifndef _SHARE_DEF_
 #define _SHARE_DEF_
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -43,7 +42,7 @@ extern "C" {
 
 typedef enum
 {
-    DBL_BUFF_ERR_TYPE_UNKNOWN=-1,/*Unknown yet*/
+  DBL_BUFF_ERR_TYPE_UNKNOWN=-1,/*Unknown yet*/
   DBL_BUFF_ERR_TYPE_OK,/*No error*/
   DBL_BUFF_ERR_TYPE_TIMEOUT,/*Timeout*/
   DBL_BUFF_ERR_TYPE_ERROR,/*Error*/
@@ -64,6 +63,5 @@ typedef enum
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif

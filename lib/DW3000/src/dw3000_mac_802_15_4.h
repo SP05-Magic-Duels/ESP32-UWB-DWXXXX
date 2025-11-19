@@ -14,7 +14,7 @@
 #define _802_15_4_
 
 #ifdef __cplusplus
-//extern "C" {
+extern "C" {
 #endif
 
 #include "dw3000_regs.h"
@@ -263,8 +263,7 @@ void get_src_and_dst_frame_addr(mac_frame_802_15_4_format_t *mac_frame_ptr,uint6
 
 
 #ifdef __cplusplus
-//}
+}
 #endif
-
 
 #endif

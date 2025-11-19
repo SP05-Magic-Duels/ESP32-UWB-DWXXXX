@@ -1,36 +1,32 @@
 /*
- * port.h
+ * dw3000_port.h
  *
- * Created: 9/10/2021 1:20:00 PM
- *  Author: Emin Eminof
+ * Converted for ESP-IDF/Standard C/C++ usage.
  */ 
 
-#ifndef PORT_H_
-#define PORT_H_
+#ifndef DW3000_PORT_H_
+#define DW3000_PORT_H_
 
+// --- Standard C/C++ Includes ---
+#include <stdint.h>
+#include <stdbool.h>
+
+// --- ESP-IDF/FreeRTOS Includes ---
+#include "driver/gpio.h"
 #include "dw3000.h"
 
-#define DDR_SPI DDRB
-#define DD_SCK DDB5
-#define DD_MISO DDB4
-#define DD_MOSI DDB3
-#define DD_SS 4
-
-#define DEFAULT_IRQ 34
-#define DEFAULT_RST 27
-#define DEFAULT_SS 4
-
-//#define DDR_PORTD DDRD
-#define DD_RESET_PIN 27
-
-#ifndef FALSE
-#define FALSE  0
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#ifndef TRUE
-#define TRUE  1
-#endif
+// --- Type Compatibility Definitions (Now using standard C) ---
 
+#define DEFAULT_IRQ (GPIO_NUM_34) // Using ESP-IDF GPIO_NUM format
+#define DEFAULT_RST (GPIO_NUM_27)
+#define DEFAULT_SS  (GPIO_NUM_4)
+
+
+// --- Register Definitions (Kept from original) ---
 // PMSC
 #define PMSC 0x36
 #define PMSC_CTRL0_SUB 0x00
@@ -121,7 +117,6 @@
 #define RNSSFD_BIT 21
 
 // system event mask register
-// NOTE: uses the bit definitions of SYS_STATUS (below 32)
 #define SYS_MASK 0x0E
 #define LEN_SYS_MASK 4
   
@@ -148,7 +143,9 @@
 #define PANADR 0x03
 #define LEN_PANADR 4
 
-void readBytes(byte cmd, uint16_t offset, byte data[], uint16_t n);
+// --- Function Declarations (Standard C types, removed C++ defaults) ---
+
+void readBytes(uint8_t cmd, uint16_t offset, uint8_t data[], uint16_t n);
 void readSystemEventStatusRegister();
 void readSystemConfigurationRegister();
 void writeSystemConfigurationRegister();
@@ -160,18 +157,18 @@ void readChannelControlRegister();
 void writeChannelControlRegister();
 void readTransmitFrameControlRegister();
 void writeTransmitFrameControlRegister();
-void setDoubleBuffering(boolean val);
-void setBit(byte data[], uint16_t n, uint16_t bit, boolean val);
-boolean getBit(byte data[], uint16_t n, uint16_t bit);
-void writeValueToBytes(byte data[], int32_t val, uint16_t n);
-void writeBytes(byte cmd, uint16_t offset, byte data[], uint16_t data_size);
-void writeByte(byte cmd, uint16_t offset, byte data);
+void setDoubleBuffering(bool val);
+void setBit(uint8_t data[], uint16_t n, uint16_t bit, bool val);
+bool getBit(uint8_t data[], uint16_t n, uint16_t bit);
+void writeValueToBytes(uint8_t data[], int32_t val, uint16_t n);
+void writeBytes(uint8_t cmd, uint16_t offset, uint8_t data[], uint16_t data_size);
+void writeByte(uint8_t cmd, uint16_t offset, uint8_t data);
 void reset();
 void softReset();
 void idle();
 void spiBegin(uint8_t irq, uint8_t rst);
 void spiSelect(uint8_t ss);
-void enableClock(byte clock);
+void enableClock(uint8_t clock);
 int writetospi(uint16_t headerLength,  uint8_t *headerBuffer, uint16_t bodyLength, uint8_t *bodyBuffer);
 int readfromspi(uint16_t headerLength, uint8_t *headerBuffer, uint16_t readLength, uint8_t *readBuffer);
 
@@ -179,7 +176,8 @@ void Sleep(uint32_t d);
 void enableDebounceClock();
 void wakeup_device_with_io();
 
-void port_set_dw_ic_spi_fastrate(uint8_t irq = DEFAULT_IRQ, uint8_t rst = DEFAULT_RST, uint8_t ss = DEFAULT_SS);
+// Removed C++ default arguments
+void port_set_dw_ic_spi_fastrate(uint8_t irq, uint8_t rst, uint8_t ss);
 
 uint32_t port_GetEXT_IRQStatus(void);
 uint32_t port_CheckEXT_IRQ(void);
@@ -188,36 +186,10 @@ void port_EnableEXT_IRQ(void);
 
 /* DW IC IRQ (EXTI15_10_IRQ) handler type. */
 typedef void (*port_dwic_isr_t)(void);
-
-/*! ------------------------------------------------------------------------------------------------------------------
- * @fn port_set_DWIC_isr()
- *
- * @brief This function is used to install the handling function for DW1000 IRQ.
- *
- * NOTE:
- *   - As EXTI9_5_IRQHandler does not check that port_deca_isr is not null, the user application must ensure that a
- *     proper handler is set by calling this function before any DW1000 IRQ occurs!
- *   - This function makes sure the DW1000 IRQ line is deactivated while the handler is installed.
- *
- * @param deca_isr function pointer to DW1000 interrupt handler to install
- *
- * @return none
- */
 void port_set_dwic_isr(port_dwic_isr_t isr);
 
-#if 0
-void sleepms(uint32_t x);
-int sleepus(uint32_t x);
-void deca_sleep(uint8_t time_ms);
-void deca_usleep(uint8_t time_us);
-void open_spi(void);
-void close_spi(void);
-
-
-void port_set_dw_ic_spi_slowrate(void);
-void port_set_dw_ic_spi_fastrate(void);
-void reset_DWIC(void);
-int spi_tranceiver (uint8_t *data);
+#ifdef __cplusplus
+} // extern "C"
 #endif
 
-#endif /* PORT_H_ */
+#endif /* DW3000_PORT_H_ */

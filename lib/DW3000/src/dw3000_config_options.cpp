@@ -10,6 +10,10 @@
  *
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "dw3000_config_options.h"
 
 /* String used to display measured distance on LCD screen (16 characters maximum). */
@@ -774,4 +778,8 @@ dwt_config_t config_option_sp0 = {
     DWT_PDOA_M0         /* PDOA mode off */
 };
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

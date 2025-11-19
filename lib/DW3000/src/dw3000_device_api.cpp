@@ -10,6 +10,10 @@
  *
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <assert.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -4926,3 +4930,8 @@ void dwt_configuresfdtype(uint8_t sfdType)
 
    ===============================================================================================
 */
+
+
+#ifdef __cplusplus
+}
+#endif

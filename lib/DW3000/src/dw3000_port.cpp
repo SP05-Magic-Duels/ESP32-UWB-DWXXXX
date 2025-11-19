@@ -1,150 +1,220 @@
 /*
- * port.c
+ * dw3000_port.cpp
  *
- * Created: 9/10/2021 1:20:05 PM
- *  Author: Emim Eminof
+ * Converted for ESP-IDF SPI API usage.
  */ 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// --- ESP-IDF and Standard C Includes ---
 #include "dw3000_port.h"
-#include "SPI.h"
+#include <string.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_rom_sys.h" // For esp_rom_delay_us
+#include "driver/gpio.h"
+#include "driver/spi_master.h"
+#include "esp_log.h"
+#include <stddef.h> // For size_t
+
+static const char* TAG = "DW3000_PORT";
+
+// --- Global Variables (Adapted for ESP-IDF) ---
+
+// SPI device handle for the DW3000 chip
+spi_device_handle_t dw3000_spi_device = NULL;
 
 uint8_t _ss;
 uint8_t _rst;
 uint8_t _irq;
 
-#ifdef ESP8266
-  // default ESP8266 frequency is 80 Mhz, thus divide by 4 is 20 MHz
-  const SPISettings _fastSPI = SPISettings(8000000L, MSBFIRST, SPI_MODE0);
-#else
-  SPISettings _fastSPI = SPISettings(8000000L, MSBFIRST, SPI_MODE0);
-#endif
-const SPISettings _slowSPI = SPISettings(2000000L, MSBFIRST, SPI_MODE0);
-const SPISettings* _currentSPI = &_fastSPI;
+// SPI config parameters (ESP-IDF style)
+#define SPI_HOST_ID       (SPI2_HOST) // Using SPI2 (VSPI) host
+#define SPI_FAST_RATE_HZ  (8000000)
+#define SPI_SLOW_RATE_HZ  (2000000)
 
-boolean _debounceClockEnabled = false;
+// Placeholder GPIOs for SPI bus (DEFINE THESE IN YOUR PROJECT!)
+// Example hardcoded values for clarity, but use sdkconfig or constants
+// NOTE: Make sure these pins are correct for your chosen SPI_HOST_ID (SPI2_HOST)
+#define CONFIG_SPI_MOSI_GPIO (GPIO_NUM_23) 
+#define CONFIG_SPI_MISO_GPIO (GPIO_NUM_19)
+#define CONFIG_SPI_SCLK_GPIO (GPIO_NUM_18)
 
-/* SPI configs. */
-/*const SPISettings _fastSPI;
-const SPISettings _slowSPI;
-const SPISettings* _currentSPI;*/
 
-  /* register caches. */
-byte _syscfg[LEN_SYS_CFG];
-byte _sysctrl[LEN_SYS_CTRL];
-byte _sysstatus[LEN_SYS_STATUS];
-byte _txfctrl[LEN_TX_FCTRL];
-byte _sysmask[LEN_SYS_MASK];
-byte _chanctrl[LEN_CHAN_CTRL];
+// Register Caches (Now using uint8_t and constants from header)
+uint8_t _syscfg[LEN_SYS_CFG];
+uint8_t _sysctrl[LEN_SYS_CTRL];
+uint8_t _sysstatus[LEN_SYS_STATUS];
+uint8_t _txfctrl[LEN_TX_FCTRL];
+uint8_t _sysmask[LEN_SYS_MASK];
+uint8_t _chanctrl[LEN_CHAN_CTRL];
 
 uint8_t _deviceMode;
+uint8_t _vmeas3v3;
+uint8_t _tmeas23C;
+uint8_t _networkAndAddress[LEN_PANADR];
 
-/* device status monitoring */
-byte _vmeas3v3;
-byte _tmeas23C;
-  
-/* PAN and short address. */
-byte _networkAndAddress[LEN_PANADR];
+bool _debounceClockEnabled = false;
+
+// --- Time and Utility Functions (Replaced Arduino functions) ---
 
 void enableDebounceClock() {
-    byte pmscctrl0[LEN_PMSC_CTRL0];
+    uint8_t pmscctrl0[LEN_PMSC_CTRL0];
     memset(pmscctrl0, 0, LEN_PMSC_CTRL0);
     readBytes(PMSC, PMSC_CTRL0_SUB, pmscctrl0, LEN_PMSC_CTRL0);
-    setBit(pmscctrl0, LEN_PMSC_CTRL0, GPDCE_BIT, 1);
-    setBit(pmscctrl0, LEN_PMSC_CTRL0, KHZCLKEN_BIT, 1);
+    pmscctrl0[GPDCE_BIT/8] |= (1 << (GPDCE_BIT%8)); // setBit(..., GPDCE_BIT, 1)
+    pmscctrl0[KHZCLKEN_BIT/8] |= (1 << (KHZCLKEN_BIT%8)); // setBit(..., KHZCLKEN_BIT, 1)
     writeBytes(PMSC, PMSC_CTRL0_SUB, pmscctrl0, LEN_PMSC_CTRL0);
     _debounceClockEnabled = true;
 }
 
 void sleepms(uint32_t x)
 {
-  //_delay_ms(x); // delay by milliseconds
+  vTaskDelay(pdMS_TO_TICKS(x));
 }
 
 int sleepus(uint32_t x)
 {
-  //_delay_us(x); // delay by microseconds
+  esp_rom_delay_us(x);
   return 0;
 }
 
-void deca_sleep(uint8_t time_ms) // wrapper for decawave sleep function
+void deca_sleep(uint8_t time_ms)
 {
   sleepms(time_ms);
 }
 
-void deca_usleep(uint8_t time_us) // wrapper for decawave sleep function
+void deca_usleep(uint8_t time_us)
 {
   sleepus(time_us);
 }
 
 
+// --- ESP-IDF SPI & GPIO Implementation ---
+
+// Initializes the GPIOs and the SPI bus host
 void spiBegin(uint8_t irq, uint8_t rst)
 {
-  /*DDR_SPI = _BV(DD_MOSI)|_BV(DD_SCK)|_BV(DD_SS); // Set MOSI, SCK and CS output
-  DDR_SPI &= ~_BV(DD_MISO); // make sure MISO is an input
-  SPCR0 = _BV(SPE)|_BV(MSTR); // Enable SPI functionality and Master SPI mode
-  SPCR0 &= ~_BV(DORD); // set SPI most significant bit first (this is default on ATMEGA328pb)
-  */
-    // generous initial init/wake-up-idle delay
-  delay(5);
-  // Configure the IRQ pin as INPUT. Required for correct interrupt setting for ESP8266
-      pinMode(irq, INPUT);
-  // start SPI
-  SPI.begin();
-#ifndef ESP8266
-//  SPI.usingInterrupt(digitalPinToInterrupt(irq)); // not every board support this, e.g. ESP8266
-#endif
-  // pin and basic member setup
-  _rst        = rst;
-  _irq        = irq;
-  //_deviceMode = IDLE_MODE;
-  // attach interrupt
-  //attachInterrupt(_irq, DW1000Class::handleInterrupt, CHANGE); // todo interrupt for ESP8266
-  // TODO throw error if pin is not a interrupt pin
-  //attachInterrupt(digitalPinToInterrupt(_irq), DW1000Class::handleInterrupt, RISING); // todo interrupt for ESP8266
+    _rst = rst;
+    _irq = irq;
+
+    // 1. Initialize GPIOs
+    gpio_set_direction((gpio_num_t)irq, GPIO_MODE_INPUT);
+    gpio_set_direction((gpio_num_t)rst, GPIO_MODE_OUTPUT);
+    gpio_set_level((gpio_num_t)rst, 1);
+    
+    // 2. Initialize the SPI bus (Host)
+    const spi_bus_config_t buscfg = {
+        .mosi_io_num = CONFIG_SPI_MOSI_GPIO,
+        .miso_io_num = CONFIG_SPI_MISO_GPIO,
+        .sclk_io_num = CONFIG_SPI_SCLK_GPIO,
+        .quadwp_io_num = -1,
+        .quadhd_io_num = -1,
+        .data4_io_num = -1,
+        .data5_io_num = -1,
+        .data6_io_num = -1,
+        .data7_io_num = -1,
+        .max_transfer_sz = 0, // 0 for default (4092 bytes)
+        .data_io_default_level = 0,
+        .flags = 0,
+        .isr_cpu_id = 0,
+        .intr_flags = 0,
+    };
+    
+    // Initialize the bus (Host ID)
+    ESP_ERROR_CHECK(spi_bus_initialize(SPI_HOST_ID, &buscfg, SPI_DMA_CH_AUTO));
+    
+    sleepms(5); // Initial delay
 }
 
+// Selects the slave device (called internally when adding the device)
 void reselect(uint8_t ss) {
-  _ss = ss;
-  pinMode(_ss, OUTPUT);
-  digitalWrite(_ss, HIGH);
+    _ss = ss;
+    gpio_set_direction((gpio_num_t)_ss, GPIO_MODE_OUTPUT);
+    gpio_set_level((gpio_num_t)_ss, 1); // CS starts HIGH (inactive)
 }
 
-void readBytes(byte cmd, uint16_t offset, byte data[], uint16_t n) {
-  byte header[3];
-  uint8_t headerLen = 1;
-  uint16_t i = 0;
-  
-  // build SPI header
-  if(offset == NO_SUB) {
-    header[0] = READ | cmd;
-  } else {
-    header[0] = READ_SUB | cmd;
-    if(offset < 128) {
-      header[1] = (byte)offset;
-      headerLen++;
-    } else {
-      header[1] = RW_SUB_EXT | (byte)offset;
-      header[2] = (byte)(offset >> 7);
-      headerLen += 2;
+// Helper to remove the existing device and re-add it with a new speed
+static void change_spi_speed(int speed_hz) {
+    if (dw3000_spi_device != NULL) {
+        spi_bus_remove_device(dw3000_spi_device);
+        dw3000_spi_device = NULL;
     }
-  }
-  SPI.beginTransaction(*_currentSPI);
-  digitalWrite(_ss, LOW);
-  for(i = 0; i < headerLen; i++) {
-    SPI.transfer(header[i]); // send header
-  }
-  for(i = 0; i < n; i++) {
-    data[i] = SPI.transfer(JUNK); // read values
-  }
-  delayMicroseconds(5);
-  digitalWrite(_ss, HIGH);
-  SPI.endTransaction();
+    
+    const spi_device_interface_config_t devcfg = {
+        .command_bits = 0,
+        .address_bits = 0,
+        .dummy_bits = 0,
+        .mode = 0, // SPI_MODE0
+        .clock_source = SPI_CLK_SRC_DEFAULT,
+        .duty_cycle_pos = 0,
+        .cs_ena_pretrans = 0,
+        .cs_ena_posttrans = 0,
+        .clock_speed_hz = speed_hz,
+        .input_delay_ns = 0,
+        .spics_io_num = (int)_ss, 
+        .flags = 0,
+        .queue_size = 7,
+        .sample_point = 0,
+        .pre_cb = NULL,
+        .post_cb = NULL
+    };
+    
+    ESP_ERROR_CHECK(spi_bus_add_device(SPI_HOST_ID, &devcfg, &dw3000_spi_device));
 }
 
-// always 4 bytes
-// TODO why always 4 bytes? can be different, see p. 58 table 10 otp memory map
-void readBytesOTP(uint16_t address, byte data[]) {
-  byte addressBytes[LEN_OTP_ADDR];
+void readBytes(uint8_t cmd, uint16_t offset, uint8_t data[], uint16_t n) {
+    uint8_t header[3];
+    uint8_t headerLen = 1;
+    
+    // Build SPI header
+    if(offset == NO_SUB) {
+        header[0] = READ | cmd;
+    } else {
+        header[0] = READ_SUB | cmd;
+        if(offset < 128) {
+            header[1] = (uint8_t)offset;
+            headerLen++;
+        } else {
+            header[1] = RW_SUB_EXT | (uint8_t)offset;
+            header[2] = (uint8_t)(offset >> 7);
+            headerLen += 2;
+        }
+    }
+
+    // 1. Send Header (Fix: Explicitly initialize all fields)
+    spi_transaction_t header_t = {
+        .flags = 0,
+        .cmd = 0,
+        .addr = 0,
+        .length = (size_t)headerLen * 8, // Fix: Narrowing conversion
+        .rxlength = 0,
+        .tx_buffer = header,
+        .rx_buffer = NULL,
+        .user = NULL,
+    };
+    ESP_ERROR_CHECK(spi_device_polling_transmit(dw3000_spi_device, &header_t));
+
+    // 2. Read Data (Fix: Explicitly initialize all fields)
+    spi_transaction_t data_t = {
+        .flags = 0,
+        .cmd = 0,
+        .addr = 0,
+        .length = (size_t)n * 8,          // Fix: Narrowing conversion
+        .rxlength = (size_t)n * 8,        // Fix: Narrowing conversion
+        .tx_buffer = NULL,
+        .rx_buffer = data,
+        .user = NULL,
+    };
+    
+    ESP_ERROR_CHECK(spi_device_polling_transmit(dw3000_spi_device, &data_t));
+    esp_rom_delay_us(5); // Replaces delayMicroseconds(5)
+}
+
+void readBytesOTP(uint16_t address, uint8_t data[]) {
+  uint8_t addressBytes[LEN_OTP_ADDR];
   
   // p60 - 6.3.3 Reading a value from OTP memory
   // bytes of address
@@ -161,78 +231,67 @@ void readBytesOTP(uint16_t address, byte data[]) {
   writeByte(OTP_IF, OTP_CTRL_SUB, 0x00);
 }
 
-// Helper to set a single register
-void writeByte(byte cmd, uint16_t offset, byte data) {
+void writeByte(uint8_t cmd, uint16_t offset, uint8_t data) {
   writeBytes(cmd, offset, &data, 1);
 }
 
-/*
- * Write bytes to the DW1000. Single bytes can be written to registers via sub-addressing.
- * @param cmd
- *    The register address (see Chapter 7 in the DW1000 user manual).
- * @param offset
- *    The offset to select register sub-parts for writing, or 0x00 to disable
- *    sub-adressing.
- * @param data
- *    The data array to be written.
- * @param data_size
- *    The number of bytes to be written (take care not to go out of bounds of
- *    the register).
- */
-// TODO offset really bigger than byte?
-void writeBytes(byte cmd, uint16_t offset, byte data[], uint16_t data_size) {
-  byte header[3];
-  uint8_t  headerLen = 1;
-  uint16_t  i = 0;
-  
-  // TODO proper error handling: address out of bounds
-  // build SPI header
-  if(offset == NO_SUB) {
-    header[0] = WRITE | cmd;
-  } else {
-    header[0] = WRITE_SUB | cmd;
-    if(offset < 128) {
-      header[1] = (byte)offset;
-      headerLen++;
+void writeBytes(uint8_t cmd, uint16_t offset, uint8_t data[], uint16_t data_size) {
+    uint8_t header[3];
+    uint8_t headerLen = 1;
+    
+    // Build SPI header
+    if(offset == NO_SUB) {
+        header[0] = WRITE | cmd;
     } else {
-      header[1] = RW_SUB_EXT | (byte)offset;
-      header[2] = (byte)(offset >> 7);
-      headerLen += 2;
+        header[0] = WRITE_SUB | cmd;
+        if(offset < 128) {
+            header[1] = (uint8_t)offset;
+            headerLen++;
+        } else {
+            header[1] = RW_SUB_EXT | (uint8_t)offset;
+            header[2] = (uint8_t)(offset >> 7);
+            headerLen += 2;
+        }
     }
-  }
-  SPI.beginTransaction(*_currentSPI);
-  digitalWrite(_ss, LOW);
-  for(i = 0; i < headerLen; i++) {
-    SPI.transfer(header[i]); // send header
-  }
-  for(i = 0; i < data_size; i++) {
-    SPI.transfer(data[i]); // write values
-  }
-  delayMicroseconds(5);
-  digitalWrite(_ss, HIGH);
-  SPI.endTransaction();
+
+    // Combine header and data into a single buffer
+    uint8_t tx_buffer[headerLen + data_size];
+    memcpy(tx_buffer, header, headerLen);
+    memcpy(tx_buffer + headerLen, data, data_size);
+
+    // Fix: Explicitly initialize all fields
+    spi_transaction_t t = {
+        .flags = 0,
+        .cmd = 0,
+        .addr = 0,
+        .length = (size_t)(headerLen + data_size) * 8, // Fix: Narrowing conversion
+        .rxlength = 0,
+        .tx_buffer = tx_buffer,
+        .rx_buffer = NULL,
+        .user = NULL,
+    };
+
+    ESP_ERROR_CHECK(spi_device_polling_transmit(dw3000_spi_device, &t));
+    esp_rom_delay_us(5); // Replaces delayMicroseconds(5)
 }
 
-void enableClock(byte clock) {
-  byte pmscctrl0[LEN_PMSC_CTRL0];
-  memset(pmscctrl0, 0, LEN_PMSC_CTRL0);
-  readBytes(PMSC, PMSC_CTRL0_SUB, pmscctrl0, LEN_PMSC_CTRL0);
-  if(clock == AUTO_CLOCK) {
-    _currentSPI = &_fastSPI;
-    pmscctrl0[0] = AUTO_CLOCK;
-    pmscctrl0[1] &= 0xFE;
-  } else if(clock == XTI_CLOCK) {
-    _currentSPI = &_slowSPI;
-    pmscctrl0[0] &= 0xFC;
-    pmscctrl0[0] |= XTI_CLOCK;
-  } else if(clock == PLL_CLOCK) {
-    _currentSPI = &_fastSPI;
-    pmscctrl0[0] &= 0xFC;
-    pmscctrl0[0] |= PLL_CLOCK;
-  } else {
-    // TODO deliver proper warning
-  }
-  writeBytes(PMSC, PMSC_CTRL0_SUB, pmscctrl0, 2);
+void enableClock(uint8_t clock) {
+    uint8_t pmscctrl0[LEN_PMSC_CTRL0];
+    memset(pmscctrl0, 0, LEN_PMSC_CTRL0);
+    readBytes(PMSC, PMSC_CTRL0_SUB, pmscctrl0, LEN_PMSC_CTRL0);
+    
+    if(clock == AUTO_CLOCK || clock == PLL_CLOCK) {
+        change_spi_speed(SPI_FAST_RATE_HZ);
+        pmscctrl0[0] &= 0xFC;
+        pmscctrl0[0] |= PLL_CLOCK;
+    } else if(clock == XTI_CLOCK) {
+        change_spi_speed(SPI_SLOW_RATE_HZ);
+        pmscctrl0[0] &= 0xFC;
+        pmscctrl0[0] |= XTI_CLOCK;
+    } else {
+        ESP_LOGW(TAG, "Unknown clock setting: %d", clock);
+    }
+    writeBytes(PMSC, PMSC_CTRL0_SUB, pmscctrl0, 2);
 }
 
 void reset() {
@@ -240,76 +299,67 @@ void reset() {
     softReset();
   } else {
     // dw1000 data sheet v2.08 §5.6.1 page 20, the RSTn pin should not be driven high but left floating.
-    pinMode(_rst, OUTPUT);
-    digitalWrite(_rst, LOW);
-    delay(2);  // dw1000 data sheet v2.08 §5.6.1 page 20: nominal 50ns, to be safe take more time
-    pinMode(_rst, INPUT);
-    delay(10); // dwm1000 data sheet v1.2 page 5: nominal 3 ms, to be safe take more time
-    // force into idle mode (although it should be already after reset)
+    gpio_set_direction((gpio_num_t)_rst, GPIO_MODE_OUTPUT);
+    gpio_set_level((gpio_num_t)_rst, 0);
+    sleepms(2);
+    gpio_set_direction((gpio_num_t)_rst, GPIO_MODE_INPUT); // leave floating
+    sleepms(10);
     idle();
   }
 }
 
 void softReset() {
-  byte pmscctrl0[LEN_PMSC_CTRL0];
+  uint8_t pmscctrl0[LEN_PMSC_CTRL0];
   readBytes(PMSC, PMSC_CTRL0_SUB, pmscctrl0, LEN_PMSC_CTRL0);
   pmscctrl0[0] = 0x01;
   writeBytes(PMSC, PMSC_CTRL0_SUB, pmscctrl0, LEN_PMSC_CTRL0);
   pmscctrl0[3] = 0x00;
   writeBytes(PMSC, PMSC_CTRL0_SUB, pmscctrl0, LEN_PMSC_CTRL0);
-  delay(10);
+  sleepms(10);
   pmscctrl0[0] = 0x00;
   pmscctrl0[3] = 0xF0;
   writeBytes(PMSC, PMSC_CTRL0_SUB, pmscctrl0, LEN_PMSC_CTRL0);
-  // force into idle mode
   idle();
 }
 
-void setBit(byte data[], uint16_t n, uint16_t bit, boolean val) {
+// Replaced Arduino bitSet macro
+void setBit(uint8_t data[], uint16_t n, uint16_t bit, bool val) {
   uint16_t idx;
   uint8_t shift;
   
   idx = bit/8;
   if(idx >= n) {
-    return; // TODO proper error handling: out of bounds
+    return;
   }
-  byte* targetByte = &data[idx];
+  uint8_t* targetByte = &data[idx];
   shift = bit%8;
+  
   if(val) {
-    bitSet(*targetByte, shift);
+    *targetByte |= (1 << shift); // Replaced bitSet
   } else {
-    bitClear(*targetByte, shift);
+    *targetByte &= ~(1 << shift); // Replaced bitClear
   }
 }
 
-/*
- * Check the value of a bit in an array of bytes that are considered
- * consecutive and stored from MSB to LSB.
- * @param data
- *    The number as byte array.
- * @param n
- *    The number of bytes in the array.
- * @param bit
- *    The position of the bit to be checked.
- */
-boolean getBit(byte data[], uint16_t n, uint16_t bit) {
+// Replaced Arduino bitRead macro
+bool getBit(uint8_t data[], uint16_t n, uint16_t bit) {
   uint16_t idx;
   uint8_t  shift;
   
   idx = bit/8;
   if(idx >= n) {
-    return false; // TODO proper error handling: out of bounds
+    return false;
   }
-  byte targetByte = data[idx];
+  uint8_t targetByte = data[idx];
   shift = bit%8;
   
-  return bitRead(targetByte, shift); // TODO wrong type returned byte instead of boolean
+  return (targetByte >> shift) & 0x01; // Replaced bitRead
 }
 
-void writeValueToBytes(byte data[], int32_t val, uint16_t n) {
+void writeValueToBytes(uint8_t data[], int32_t val, uint16_t n) {
   uint16_t i;
   for(i = 0; i < n; i++) {
-    data[i] = ((val >> (i*8)) & 0xFF); // TODO bad types - signed unsigned problem
+    data[i] = ((val >> (i*8)) & 0xFF);
   }
 }
 
@@ -364,11 +414,11 @@ void idle() {
   writeBytes(SYS_CTRL, NO_SUB, _sysctrl, LEN_SYS_CTRL);
 }
 
-void setDoubleBuffering(boolean val) {
+void setDoubleBuffering(bool val) {
   setBit(_syscfg, LEN_SYS_CFG, DIS_DRXB_BIT, !val);
 }
 
-void setInterruptPolarity(boolean val) {
+void setInterruptPolarity(bool val) {
   setBit(_syscfg, LEN_SYS_CFG, HIRQ_POL_BIT, val);
 }
 
@@ -377,16 +427,15 @@ void clearInterrupts() {
 }
 
 void manageLDE() {
-  // transfer any ldo tune values
-  byte ldoTune[LEN_OTP_RDAT];
+  // ... (implementation remains the same, assuming setBit/readBytes/writeBytes are now correct) ...
+  uint8_t ldoTune[LEN_OTP_RDAT];
   readBytesOTP(0x04, ldoTune); // TODO #define
   if(ldoTune[0] != 0) {
     // TODO tuning available, copy over to RAM: use OTP_LDO bit
   }
   // tell the chip to load the LDE microcode
-  // TODO remove clock-related code (PMSC_CTRL) as handled separately
-  byte pmscctrl0[LEN_PMSC_CTRL0];
-  byte otpctrl[LEN_OTP_CTRL];
+  uint8_t pmscctrl0[LEN_PMSC_CTRL0];
+  uint8_t otpctrl[LEN_OTP_CTRL];
   memset(pmscctrl0, 0, LEN_PMSC_CTRL0);
   memset(otpctrl, 0, LEN_OTP_CTRL);
   readBytes(PMSC, PMSC_CTRL0_SUB, pmscctrl0, LEN_PMSC_CTRL0);
@@ -397,232 +446,152 @@ void manageLDE() {
   otpctrl[1]   = 0x80;
   writeBytes(PMSC, PMSC_CTRL0_SUB, pmscctrl0, 2);
   writeBytes(OTP_IF, OTP_CTRL_SUB, otpctrl, 2);
-  delay(5);
+  sleepms(5);
   pmscctrl0[0] = 0x00;
   pmscctrl0[1] &= 0x02;
   writeBytes(PMSC, PMSC_CTRL0_SUB, pmscctrl0, 2);
 }
 
 void Sleep(uint32_t d) {
-    delay(d);
+    sleepms(d);
 }
 
 void spiSelect(uint8_t ss) {
   reselect(ss);
-  // try locking clock at PLL speed (should be done already,
-  // but just to be sure)
   enableClock(AUTO_CLOCK);
-  delay(5);
-  // reset chip (either soft or hard)
+  sleepms(5);
   if(_rst != 0xff) {
-    // dw1000 data sheet v2.08 §5.6.1 page 20, the RSTn pin should not be driven high but left floating.
-    pinMode(_rst, INPUT);
+    gpio_set_direction((gpio_num_t)_rst, GPIO_MODE_INPUT);
   }
   reset();
-  // default network and node id
+  
   writeValueToBytes(_networkAndAddress, 0xFF, LEN_PANADR);
   writeNetworkIdAndDeviceAddress();
-  // default system configuration
+  
   memset(_syscfg, 0, LEN_SYS_CFG);
   setDoubleBuffering(false);
   setInterruptPolarity(true);
   writeSystemConfigurationRegister();
-  // default interrupt mask, i.e. no interrupts
+  
   clearInterrupts();
   writeSystemEventMaskRegister();
-  // load LDE micro-code
-  enableClock(XTI_CLOCK);
-  delay(5);
-  manageLDE();
-  delay(5);
-  enableClock(AUTO_CLOCK);
-  delay(5);
   
-  // read the temp and vbat readings from OTP that were recorded during production test
-  // see 6.3.1 OTP memory map
-  byte buf_otp[4];
-  readBytesOTP(0x008, buf_otp); // the stored 3.3 V reading
+  enableClock(XTI_CLOCK);
+  sleepms(5);
+  manageLDE();
+  sleepms(5);
+  enableClock(AUTO_CLOCK);
+  sleepms(5);
+  
+  uint8_t buf_otp[4];
+  readBytesOTP(0x008, buf_otp);
   _vmeas3v3 = buf_otp[0];
-  readBytesOTP(0x009, buf_otp); // the stored 23C reading
+  readBytesOTP(0x009, buf_otp);
   _tmeas23C = buf_otp[0];
 }
 
-
 int readfromspi(uint16_t headerLength, uint8_t *headerBuffer, uint16_t readLength, uint8_t *readBuffer)
 {
+    // 1. Send Header
+    spi_transaction_t header_t = {
+        .flags = 0,
+        .cmd = 0,
+        .addr = 0,
+        .length = (size_t)headerLength * 8, // Fix: Narrowing conversion
+        .rxlength = 0,
+        .tx_buffer = headerBuffer,
+        .rx_buffer = NULL,
+        .user = NULL,
+    };
+    ESP_ERROR_CHECK(spi_device_polling_transmit(dw3000_spi_device, &header_t));
 
-  SPI.beginTransaction(*_currentSPI);
-  digitalWrite(_ss, LOW);
-  for(int i = 0; i < headerLength; i++) {
-    SPI.transfer(headerBuffer[i]); // send header
-  }
-  for(int i = 0; i < readLength; i++) {
-    readBuffer[i] = SPI.transfer(JUNK); // read values
-  }
-  delayMicroseconds(5);
-  digitalWrite(_ss, HIGH);
-  SPI.endTransaction();
-
-
-
-
-  
-  /*open_spi(); // we first open the SPI line by setting it to low
-  for(int i=0; i<headerLength; i++) // write our header bytes to selected chip
-  {
-    spi_tranceiver(headerBuffer[i]);
-  }
-  for(int i=0; i<readLength; i++)
-  {
-    readBuffer[i] = spi_tranceiver(0x00); // store read byte value in the buffer
-  
-  }
-  sleepus(5); // not sure if this is needed?
-  close_spi(); // close the SPI line by setting it to high*/
-  return 0;
+    // 2. Read Body
+    spi_transaction_t read_t = {
+        .flags = 0,
+        .cmd = 0,
+        .addr = 0,
+        .length = (size_t)readLength * 8,       // Fix: Narrowing conversion
+        .rxlength = (size_t)readLength * 8,     // Fix: Narrowing conversion
+        .tx_buffer = NULL,
+        .rx_buffer = readBuffer,
+        .user = NULL,
+    };
+    ESP_ERROR_CHECK(spi_device_polling_transmit(dw3000_spi_device, &read_t));
+    esp_rom_delay_us(5);
+    return 0;
 }
 
 int writetospi(uint16_t headerLength, uint8_t *headerBuffer, uint16_t bodyLength, uint8_t *bodyBuffer)
 {
-  SPI.beginTransaction(*_currentSPI);
-  digitalWrite(_ss, LOW);
-  for(int i = 0; i < headerLength; i++) {
-    SPI.transfer(headerBuffer[i]); // send header
-  }
-  for(int i = 0; i < bodyLength; i++) {
-    SPI.transfer(bodyBuffer[i]); // write values
-  }
-  delayMicroseconds(5);
-  digitalWrite(_ss, HIGH);
-  SPI.endTransaction();
+    // Combine header and body into a single transaction buffer
+    uint8_t tx_buffer[headerLength + bodyLength];
+    memcpy(tx_buffer, headerBuffer, headerLength);
+    memcpy(tx_buffer + headerLength, bodyBuffer, bodyLength);
 
-  
-  /*open_spi(); // we first open the SPI line by setting it to low
-  for(int i=0; i<headerLength; i++) // write our header bytes to selected chip
-  {
-    spi_tranceiver(headerBuffer[i]);  
-    
-  }
-  for(int i=0; i<bodyLength; i++) // write our body data bytes to the selected chip
-  {
-    spi_tranceiver(bodyBuffer[i]);
-    
-  }
-  sleepus(5); // not sure if this is needed?
-  close_spi(); // close the SPI line by setting it to high*/
-  return 0;
+    spi_transaction_t t = {
+        .flags = 0,
+        .cmd = 0,
+        .addr = 0,
+        .length = (size_t)(headerLength + bodyLength) * 8, // Fix: Narrowing conversion
+        .rxlength = 0,
+        .tx_buffer = tx_buffer,
+        .rx_buffer = NULL,
+        .user = NULL,
+    };
+
+    ESP_ERROR_CHECK(spi_device_polling_transmit(dw3000_spi_device, &t));
+    esp_rom_delay_us(5);
+    return 0;
 }
 
 void wakeup_device_with_io() {
-    digitalWrite(_ss, LOW);
-    delay(2);
-    digitalWrite(_ss, HIGH);
+    // In ESP-IDF, we control CS via spi_device_polling_transmit, but this function
+    // is often used to toggle CS manually to wake the chip.
+    // We temporarily use GPIO calls for this specific sequence.
+    gpio_set_level((gpio_num_t)_ss, 0);
+    sleepms(2);
+    gpio_set_level((gpio_num_t)_ss, 1);
     if (_debounceClockEnabled){
-            enableDebounceClock();
+        enableDebounceClock();
     }
 }
 
 
 void port_set_dw_ic_spi_fastrate(uint8_t irq, uint8_t rst, uint8_t ss) {
     spiBegin(irq, rst);
-    spiSelect(ss);
+    reselect(ss);
+    change_spi_speed(SPI_FAST_RATE_HZ);
 }
 
-uint32_t port_GetEXT_IRQStatus(void) {
+// --- Placeholder Interrupt Functions (Require ESP-IDF ISR setup) ---
+// NOTE: These function definitions require returning a value (decaIrqStatus_t / uint32_t)
 
+uint32_t port_GetEXT_IRQStatus(void) {
+    return 0; // Placeholder
 }
 
 uint32_t port_CheckEXT_IRQ(void) {
-
+    return 0; // Placeholder
 }
 
 void port_DisableEXT_IRQ(void) {
-
+    // Requires ESP-IDF gpio_intr_disable()
 }
 
 void port_EnableEXT_IRQ(void) {
-
+    // Requires ESP-IDF gpio_intr_enable()
 }
 
 /* DW IC IRQ handler definition. */
 static port_dwic_isr_t port_dwic_isr = NULL;
 
-/*! ------------------------------------------------------------------------------------------------------------------
- * @fn port_set_dwic_isr()
- *
- * @brief This function is used to install the handling function for DW IC IRQ.
- *
- * NOTE:
- *   - The user application shall ensure that a proper handler is set by calling this function before any DW IC IRQ occurs.
- *   - This function deactivates the DW IC IRQ line while the handler is installed.
- *
- * @param deca_isr function pointer to DW IC interrupt handler to install
- *
- * @return none
- */
 void port_set_dwic_isr(port_dwic_isr_t dwic_isr)
 {
-    /* Check DW IC IRQ activation status. */
-    //ITStatus en = port_GetEXT_IRQStatus();
-
-    /* If needed, deactivate DW IC IRQ during the installation of the new handler. */
-    //port_DisableEXT_IRQ();
-    portDISABLE_INTERRUPTS();
+    portDISABLE_INTERRUPTS(); // FreeRTOS macro to disable
     port_dwic_isr = dwic_isr;
-    portENABLE_INTERRUPTS();
-/*
-    if (!en)
-    {
-        port_EnableEXT_IRQ();
-    }*/
+    portENABLE_INTERRUPTS(); // FreeRTOS macro to enable
 }
 
-
-#if 0
-void open_spi(void)
-{
-  //PORTB &= ~_BV(PORTB2); // set SS pin to LOW to enable SPI
+#ifdef __cplusplus
 }
-
-void close_spi(void)
-{
-  //PORTB |= _BV(PORTB2); // set SS pin to HIGH to disable SPI
-}
-
-int spi_tranceiver (uint8_t *data) // send single byte
-{
-  /*SPDR0 = data; // Load data into the buffer
-  sleepus(1);
-  while(!(SPSR0 & _BV(SPIF) )); // Wait until transmission complete
-  
-  // Return received data
-  return(SPDR0);*/
-  return (0);
-}
-
-
-
-void port_set_dw_ic_spi_slowrate(void)
-{
-  //SPSR0 &= ~_BV(SPI2X); // turn off fast speed
-}
-
-void port_set_dw_ic_spi_fastrate(void)
-{
-  //SPSR0 |= _BV(SPI2X); // set fast speed by changing oscillator speed to FOSC / 2
-}
-
-void reset_DWIC(void) // currently not used as we are using softreset()
-{
-  /*DDR_PORTD |= _BV(DD_RESET_PIN); // set reset PIN as output
-  PORTD &= ~_BV(PORTD7); // set reset pin to low for brief amount of time
-
-  sleepus(1);
-
-  DDR_PORTD &= ~_BV(DD_RESET_PIN); // set reset pin to input again
-
-  sleepms(2); // allow for chip to turn back on*/
-
-}
-
 #endif

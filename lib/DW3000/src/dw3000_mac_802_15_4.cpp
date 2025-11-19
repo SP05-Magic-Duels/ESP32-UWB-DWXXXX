@@ -9,6 +9,11 @@
  * All rights reserved.
  *
  */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <string.h>
 #include "dw3000_device_api.h"
 #include "dw3000_mac_802_15_4.h"
@@ -266,3 +271,6 @@ void get_src_and_dst_frame_addr(mac_frame_802_15_4_format_t *mac_frame_ptr, uint
     }
 }
 
+#ifdef __cplusplus
+}
+#endif

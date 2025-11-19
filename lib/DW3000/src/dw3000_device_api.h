@@ -14,7 +14,7 @@
 #define _DECA_DEVICE_API_H_
 
 #ifdef __cplusplus
-//extern "C" {
+extern "C" {
 #endif
 
 #include "dw3000_types.h"
@@ -2547,7 +2547,7 @@ void dwt_configure_le_address(uint16_t addr, uint8_t leIndex);
 void dwt_configuresfdtype(uint8_t sfdType);
 
 #ifdef __cplusplus
-//}
+}
 #endif
 
 #endif /* _DECA_DEVICE_API_H_ */

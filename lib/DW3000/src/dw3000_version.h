@@ -13,6 +13,10 @@
 #ifndef _DECA_VERSION_H_
 #define _DECA_VERSION_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //
 // The DW3000 device driver is separately version numbered to any version the application using it may have
 //
@@ -28,5 +32,9 @@
 
 #define DW3000_DRIVER_VERSION               0x040000
 #define DW3000_DEVICE_DRIVER_VER_STRING     "DW3000 C0 Device Driver Version 04.00.00"
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -4,6 +4,5 @@
   "license": "Apache-2.0",
   "keywords": "wireless, communication",
   "description": "A library that offers functionality to use Decawave's DW3000 chips.",
-  "frameworks": "arduino",
   "platforms": "*"
 }
