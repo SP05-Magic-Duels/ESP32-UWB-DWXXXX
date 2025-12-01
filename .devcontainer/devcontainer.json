@@ -10,15 +10,18 @@
 				"idf.espIdfPath": "/opt/esp/idf",
 				"idf.toolsPath": "/opt/esp",
 				"idf.gitPath": "/usr/bin/git",
-				"docker.dockerPath": "docker"
+				"dev.containers.dockerPath": "docker"
 			},
 			"extensions": [
 				"espressif.esp-idf-extension",
-				"espressif.esp-idf-web"
+				"espressif.esp-idf-web",
+				"ms-vscode.cpptools",
+      			"platformio.platformio-ide"
 			]
 		}
 	},
 	"runArgs": [
+		"--device=/dev/ttyUSB0:/dev/ttyUSB0",
 		"--privileged"
 	]
 }
