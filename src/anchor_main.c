@@ -1,3 +1,5 @@
+// Currently working on adding a HAL layer to run this file using ESP-IDF functions
+
 // /*! ------------------------------------------------------------------------------------------------------------------
 //  * @file tag_main.c
 //  * @brief Anchor scheduling main loop. The anchor keeps on broadcasting UWB packets and overhearing UWB packets sent 
@@ -9,7 +11,7 @@
 //  */
 
 // #include "compiler.h"
-// #include "port.h"
+#include "esp_port.h"
 
 // #include "deca_regs.h"
 
@@ -86,9 +88,9 @@
 // uint16_t maxGC;
 // uint8_t rxPC;
 
-// void dw_init(void)
-// {
-// 	reset_DW1000();
+void dw_init(void)
+{
+	hal_reset_dw1000();
 
 // 	// Config the SPI speed to 2 MHz
 // 	SPI_ConfigFastRate(SPI_BaudRatePrescaler_32);
@@ -130,7 +132,7 @@
 
 // 	msg_f_send.sourceAddr[0] = 1 & 0xFF;
 // 	msg_f_send.sourceAddr[1] = (1 >> 8) & 0xFF;
-// }
+}
 
 // int dw_main(void)
 // {
