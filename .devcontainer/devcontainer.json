@@ -33,6 +33,11 @@
 		}
 	},
 
+	"features": {
+        "git": "os-provided",
+        "sshd": "latest"
+    },
+
 	"runArgs": [
 		"--privileged"
 	]
