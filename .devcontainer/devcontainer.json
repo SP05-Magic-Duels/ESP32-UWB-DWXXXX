@@ -1,8 +1,21 @@
 {
-	"name": "ESP-IDF QEMU",
+	"name": "ESP-IDF",
+	
+	/* mount the local folder to /workspaces folder of Docker image */
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/esp-uwb-dwxxxx,type=bind",
+    
+	/* the path of workspace folder, which means that this folder will be opened after container is running */
+    "workspaceFolder": "/workspaces/esp-uwb-dwxxxx",
+
+    /* mount the VS Code extensions to the target path, and then they don't need to be installed again when rebuilding the container */
+    "mounts": [
+        "source=extensionCache,target=/root/.vscode-server/extensions,type=volume"
+    ],
+
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
+
 	"customizations": {
 		"vscode": {
 			"settings": {
@@ -15,13 +28,12 @@
 			"extensions": [
 				"espressif.esp-idf-extension",
 				"espressif.esp-idf-web",
-				"ms-vscode.cpptools",
-      			"platformio.platformio-ide"
+				"ms-vscode.cpptools"
 			]
 		}
 	},
+
 	"runArgs": [
-		"--device=/dev/ttyUSB0:/dev/ttyUSB0",
 		"--privileged"
 	]
 }

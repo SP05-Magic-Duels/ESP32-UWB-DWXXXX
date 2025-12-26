@@ -1,16 +1,13 @@
 {
-    "idf.pythonInstallPath": "/opt/esp/python_env/idf5.2_py3.10_env/bin/python",
-    "idf.espIdfPath": "/opt/esp/idf",
-    "idf.toolsPath": "/opt/esp",
-    "files.associations": {
-        "inttypes.h": "c",
-        "cstddef": "cpp",
-        "format": "cpp",
-        "cmath": "cpp",
-        "string_view": "cpp",
-        "array": "cpp",
-        "string": "cpp",
-        "span": "cpp"
-    },
-    "idf.port": "/dev/ttyUSB0"
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.espIdfPath": "/opt/esp/idf",
+  "idf.pythonInstallPath": "/usr/bin/python3",
+  "idf.openOcdConfigs": [
+    "board/esp32-bridge.cfg"
+  ],
+  "idf.port": "detect",
+  "idf.toolsPath": "/opt/esp",
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32"
+  }
 }
