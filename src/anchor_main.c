@@ -92,8 +92,8 @@ void dw_init(void)
 {
 	hal_reset_dw1000();
 
-// 	// Config the SPI speed to 2 MHz
-// 	SPI_ConfigFastRate(SPI_BaudRatePrescaler_32);
+	// Config the SPI speed to 2 MHz
+	SPI_ConfigFastRate(/* SPI_BaudRatePrescaler_32 */);
 
 // 	// DW1000 Initialization
 // 	if (dwt_initialise(DWT_LOADUCODE) == DWT_ERROR)
