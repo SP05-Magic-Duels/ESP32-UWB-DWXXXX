@@ -10,10 +10,14 @@
  *
  */
 
-#include "dw3000_device_api.h"
-
 #ifndef EXAMPLES_CONFIG_OPTIONS_H_
 #define EXAMPLES_CONFIG_OPTIONS_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "dw3000_device_api.h"
 
 /* Index values for errors in array */
 #define CRC_ERR_IDX 0
@@ -240,5 +244,9 @@
 #define CONFIG_OPTION_33
 
 extern char dist_str[16];
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* EXAMPLES_CONFIG_OPTIONS_H_ */

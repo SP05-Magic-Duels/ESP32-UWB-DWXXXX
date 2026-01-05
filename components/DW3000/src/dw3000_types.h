@@ -20,7 +20,6 @@ extern "C" {
 #include <stdint.h>
 #include <stddef.h>
 
-
 #ifndef NULL
 #define NULL ((void *)0UL)
 #endif

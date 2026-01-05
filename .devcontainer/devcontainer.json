@@ -2,17 +2,12 @@
   "name": "ESP-IDF",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/esp-uwb-dwxxxx,type=bind",
   "workspaceFolder": "/workspaces/esp-uwb-dwxxxx",
-
   "mounts": [
-    "source=${env:HOME}/.ssh,target=/root/.ssh,type=bind",
-	"source=${env:SSH_AUTH_SOCK},target=/ssh-agent,type=bind,consistency=cached",
     "source=extensionCache,target=/root/.vscode-server/extensions,type=volume"
   ],
-
   "build": {
     "dockerfile": "Dockerfile"
   },
-
   "customizations": {
     "vscode": {
       "settings": {
@@ -28,14 +23,7 @@
       ]
     }
   },
-
-  "remoteUser": "root",
-
-  "remoteEnv": {
-    "SSH_AUTH_SOCK": "/ssh-agent"
-  },
-
-  "postCreateCommand": "chown -R root:root /root/.ssh && chmod 700 /root/.ssh && chmod 600 /root/.ssh/id_* && chmod 644 /root/.ssh/*.pub && chmod 600 /root/.ssh/config /root/.ssh/known_hosts || true",
-  
-  "runArgs": ["--privileged"]
+  "runArgs": [
+    "--privileged"
+  ]
 }

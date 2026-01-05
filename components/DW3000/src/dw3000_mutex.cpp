@@ -12,6 +12,7 @@
 
 #include <dw3000_device_api.h>
 #include <dw3000_port.h>
+
 // ---------------------------------------------------------------------------
 //
 // NB: The purpose of this file is to provide for microprocessor interrupt enable/disable, this is used for

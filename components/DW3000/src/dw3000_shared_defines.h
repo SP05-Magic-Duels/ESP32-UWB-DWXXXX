@@ -13,7 +13,6 @@
 #ifndef _SHARE_DEF_
 #define _SHARE_DEF_
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -59,11 +58,8 @@ typedef enum
     AES_RES_ERROR_IGNORE_FRAME=-4
 }aes_results_e;
 
-
-
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif
+#endif /* _SHARE_DEF_ */

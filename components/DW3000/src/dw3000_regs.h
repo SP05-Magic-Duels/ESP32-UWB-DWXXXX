@@ -5,8 +5,11 @@
  *
  * @author  Decawave Software
  * @attention
+ * 
  * Copyright 2019 - 2020 (c) Decawave Ltd, Dublin, Ireland.
+ * 
  * All rights reserved.
+ * 
  */
 
 #ifndef __DECA_REGS_H

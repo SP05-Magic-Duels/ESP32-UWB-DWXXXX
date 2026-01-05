@@ -14,7 +14,7 @@
 #define _802_15_4_
 
 #ifdef __cplusplus
-//extern "C" {
+extern "C" {
 #endif
 
 #include "dw3000_regs.h"
@@ -260,11 +260,8 @@ aes_results_e rx_aes_802_15_4(mac_frame_802_15_4_format_t   *mac_frame_ptr,uint1
 security_state_e get_security_state(mac_frame_802_15_4_format_t *mac_frame_ptr);
 void get_src_and_dst_frame_addr(mac_frame_802_15_4_format_t *mac_frame_ptr,uint64_t *src, uint64_t *dst);
 
-
-
 #ifdef __cplusplus
-//}
+}
 #endif
 
-
-#endif
+#endif /* _802_15_4_ */

@@ -13,7 +13,6 @@
 #include "dw3000_device_api.h"
 #include "dw3000_mac_802_15_4.h"
 
-
 /*Set the pan id src + dst and src and dst addresses*/
 void mac_frame_set_pan_ids_and_addresses_802_15_4(mac_frame_802_15_4_format_t *mac_frame_ptr, uint16_t dest_pan_id,
         uint64_t dest_addr/*,uint16_t src_pan_id*/, uint64_t src_addr)

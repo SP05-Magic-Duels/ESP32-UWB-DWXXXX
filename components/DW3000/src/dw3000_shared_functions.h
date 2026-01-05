@@ -2,7 +2,7 @@
 #define _SHARE_FUNC_
 
 #ifdef __cplusplus
-//extern "C" {
+extern "C" {
 #endif
 
 #include "dw3000.h"
@@ -102,11 +102,8 @@ void final_msg_get_ts(const uint8_t *ts_field, uint32_t *ts);
 void final_msg_set_ts(uint8_t *ts_field, uint64_t ts);
 void resp_msg_set_ts(uint8_t *ts_field, const uint64_t ts);
 
-
-
 #ifdef __cplusplus
-//}
+}
 #endif
 
-
-#endif
+#endif /* _SHARE_FUNC_ */

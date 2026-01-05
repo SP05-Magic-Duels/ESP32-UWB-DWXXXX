@@ -1,13 +1,26 @@
 /*
- * port.h
+ * dw3000_port.h
  *
  * Created: 9/10/2021 1:20:00 PM
- *  Author: Emin Eminof
+ * Author: Emin Eminof
+ * 
  */ 
 
-#ifndef PORT_H_
-#define PORT_H_
+#ifndef DW3000_PORT_H_
+#define DW3000_PORT_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <inttypes.h>
+#include "esp_log.h"
+#include "driver/spi_master.h"
+#include "driver/spi_slave.h"
+#include "driver/gpio.h"
 #include "dw3000.h"
 
 #define DDR_SPI DDRB
@@ -16,11 +29,16 @@
 #define DD_MOSI DDB3
 #define DD_SS 4
 
+#define DEFAULT_MISO 12
+#define DEFAULT_MOSI 13
+#define DEFAULT_CLK  14
+#define DEFAULT_CS   15
+
 #define DEFAULT_IRQ 34
 #define DEFAULT_RST 27
 #define DEFAULT_SS 4
 
-//#define DDR_PORTD DDRD
+// #define DDR_PORTD DDRD
 #define DD_RESET_PIN 27
 
 #ifndef FALSE
@@ -46,10 +64,10 @@
 #define ATXSLP_BIT 11
 #define ARXSLP_BIT 12
 
-// used for SPI ready w/o actual writes
+// Used for SPI ready w/o actual writes
 #define JUNK 0x00
 
-// no sub-address for register write
+// No sub-address for register write
 #define NO_SUB 0xFF
 
 #define WRITE      0x80
@@ -69,7 +87,7 @@
 #define RXENAB_BIT 8
 #define RXDLYS_BIT 9
 
-// device configuration register
+// Device configuration register
 #define SYS_CFG 0x04
 #define LEN_SYS_CFG 4
 #define FFEN_BIT 0
@@ -87,7 +105,7 @@
 #define LEN_PHR_MODE_SUB 2
 #define RXM110K_BIT 22
 
-// system event status register
+// System event status register
 #define SYS_STATUS 0x0F
 #define LEN_SYS_STATUS 5
 #define CPLOCK_BIT 1
@@ -109,23 +127,23 @@
 #define RFPLL_LL_BIT 24
 #define CLKPLL_LL_BIT 25
 
-// transmit control
+// Transmit control
 #define TX_FCTRL 0x08
 #define LEN_TX_FCTRL 5
 
-// channel control
+// Channel control
 #define CHAN_CTRL 0x1F
 #define LEN_CHAN_CTRL 4
 #define DWSFD_BIT 17
 #define TNSSFD_BIT 20
 #define RNSSFD_BIT 21
 
-// system event mask register
-// NOTE: uses the bit definitions of SYS_STATUS (below 32)
+// System event mask register
+// NOTE: Uses the bit definitions of SYS_STATUS (below 32)
 #define SYS_MASK 0x0E
 #define LEN_SYS_MASK 4
-  
-  /* clocks available. */
+
+// Clocks available
 #define AUTO_CLOCK 0x00
 #define XTI_CLOCK  0x01
 #define PLL_CLOCK  0x02
@@ -139,7 +157,7 @@
 #define LEN_OTP_CTRL 2
 #define LEN_OTP_RDAT 4
 
-// enum to determine RX or TX mode of device
+// Enum to determine RX or TX mode of device
 #define IDLE_MODE 0x00
 #define RX_MODE 0x01
 #define TX_MODE 0x02
@@ -148,7 +166,7 @@
 #define PANADR 0x03
 #define LEN_PANADR 4
 
-void readBytes(byte cmd, uint16_t offset, byte data[], uint16_t n);
+void readBytes(uint8_t cmd, uint16_t offset, uint8_t data[], uint16_t n);
 void readSystemEventStatusRegister();
 void readSystemConfigurationRegister();
 void writeSystemConfigurationRegister();
@@ -160,18 +178,18 @@ void readChannelControlRegister();
 void writeChannelControlRegister();
 void readTransmitFrameControlRegister();
 void writeTransmitFrameControlRegister();
-void setDoubleBuffering(boolean val);
-void setBit(byte data[], uint16_t n, uint16_t bit, boolean val);
-boolean getBit(byte data[], uint16_t n, uint16_t bit);
-void writeValueToBytes(byte data[], int32_t val, uint16_t n);
-void writeBytes(byte cmd, uint16_t offset, byte data[], uint16_t data_size);
-void writeByte(byte cmd, uint16_t offset, byte data);
+void setDoubleBuffering(uint8_t val);
+void setBit(uint8_t data[], uint16_t n, uint16_t bit, uint8_t val);
+uint8_t getBit(uint8_t data[], uint16_t n, uint16_t bit);
+void writeValueToBytes(uint8_t data[], int32_t val, uint16_t n);
+void writeBytes(uint8_t cmd, uint16_t offset, uint8_t data[], uint16_t data_size);
+void writeByte(uint8_t cmd, uint16_t offset, uint8_t data);
 void reset();
 void softReset();
 void idle();
 void spiBegin(uint8_t irq, uint8_t rst);
 void spiSelect(uint8_t ss);
-void enableClock(byte clock);
+void enableClock(uint8_t clock);
 int writetospi(uint16_t headerLength,  uint8_t *headerBuffer, uint16_t bodyLength, uint8_t *bodyBuffer);
 int readfromspi(uint16_t headerLength, uint8_t *headerBuffer, uint16_t readLength, uint8_t *readBuffer);
 
@@ -205,19 +223,8 @@ typedef void (*port_dwic_isr_t)(void);
  */
 void port_set_dwic_isr(port_dwic_isr_t isr);
 
-#if 0
-void sleepms(uint32_t x);
-int sleepus(uint32_t x);
-void deca_sleep(uint8_t time_ms);
-void deca_usleep(uint8_t time_us);
-void open_spi(void);
-void close_spi(void);
-
-
-void port_set_dw_ic_spi_slowrate(void);
-void port_set_dw_ic_spi_fastrate(void);
-void reset_DWIC(void);
-int spi_tranceiver (uint8_t *data);
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* PORT_H_ */

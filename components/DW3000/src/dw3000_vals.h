@@ -1,16 +1,16 @@
-///*! ------------------------------------------------------------------------------------------------------------------
-// * @file    deca_vals.h
-// * @brief   DW3000 Register Definitions
-// *          This file supports assembler and C development for DW3000 enabled devices
-// *
-// * @attention
-// *
-// * Copyright 2013-2020 (c) Decawave Ltd, Dublin, Ireland.
-// *
-// * All rights reserved.
-// *
-// */
-//
+/*! ------------------------------------------------------------------------------------------------------------------
+* @file    deca_vals.h
+* @brief   DW3000 Register Definitions
+*          This file supports assembler and C development for DW3000 enabled devices
+*
+* @attention
+*
+* Copyright 2013-2020 (c) Decawave Ltd, Dublin, Ireland.
+*
+* All rights reserved.
+*
+*/
+
 #ifndef _DECA_VALS_H_
 #define _DECA_VALS_H_
 
@@ -248,9 +248,8 @@ extern "C" {
 #define BUF1_STS1_DIAG_11           0x1801C8
 #define BUF1_STS1_DIAG_12           0x1801CC
 
-
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* _DECA_VALS_H_ */
