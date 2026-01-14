@@ -31,11 +31,11 @@ uint8_t DW1000Class::_rst;
 uint8_t DW1000Class::_irq;
 
 /* Defining pins for ESP32 which uses MISO, MOSI, CS, SCLK */
-#define ESP_HOST VSPI_HOST							// Selecting host(ESP32) to work in VSPI mode
-gpio_num_t DW1000Class::PIN_NUM_MISO = GPIO_NUM_12; // MISO pin is present at GPIO_NUM_12
-gpio_num_t DW1000Class::PIN_NUM_MOSI = GPIO_NUM_13; // MOSI pin is present at GPIO_NUM_13
-gpio_num_t DW1000Class::PIN_NUM_CLK = GPIO_NUM_14;	// SCLK pin is present at GPIO_NUM_14
-gpio_num_t DW1000Class::PIN_NUM_CS = GPIO_NUM_15;	// CS' pin is present at GPIO_NUM_15
+#define ESP_HOST VSPI_HOST // Selecting host(ESP32) to work in VSPI mode
+gpio_num_t DW1000Class::PIN_NUM_MISO = GPIO_NUM_19;
+gpio_num_t DW1000Class::PIN_NUM_MOSI = GPIO_NUM_23;
+gpio_num_t DW1000Class::PIN_NUM_CLK = GPIO_NUM_18;
+gpio_num_t DW1000Class::PIN_NUM_CS = GPIO_NUM_21;
 
 static spi_device_handle_t s_spi = nullptr;
 
@@ -219,7 +219,7 @@ void DW1000Class::begin(uint8_t irq, uint8_t rst)
 	// attach interrupt
 	// attachInterrupt(_irq, DW1000Class::handleInterrupt, CHANGE); // todo interrupt for ESP8266
 	// TODO throw error if pin is not a interrupt pin
-	attachInterrupt(digitalPinToInterrupt(_irq), DW1000Class::handleInterrupt, RISING); // todo interrupt for ESP8266
+	// attachInterrupt(digitalPinToInterrupt(_irq), DW1000Class::handleInterrupt, RISING); // todo interrupt for ESP8266
 }
 
 void DW1000Class::manageLDE()

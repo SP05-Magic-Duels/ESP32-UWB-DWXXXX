@@ -3,13 +3,14 @@
  *
  * Created: 9/10/2021 1:20:00 PM
  *  Author: Emin Eminof
- */ 
+ */
 
 #ifndef PORT_H_
 #define PORT_H_
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #include "dw3000.h"
@@ -20,19 +21,23 @@ extern "C" {
 #define DD_MOSI DDB3
 #define DD_SS 4
 
+#define DEFAULT_MISO 18
+#define DEFAULT_MOSI 13
+#define DEFAULT_CLK 14
+
 #define DEFAULT_IRQ 34
 #define DEFAULT_RST 27
 #define DEFAULT_SS 4
 
-//#define DDR_PORTD DDRD
+// #define DDR_PORTD DDRD
 #define DD_RESET_PIN 27
 
 #ifndef FALSE
-#define FALSE  0
+#define FALSE 0
 #endif
 
 #ifndef TRUE
-#define TRUE  1
+#define TRUE 1
 #endif
 
 // PMSC
@@ -56,10 +61,10 @@ extern "C" {
 // no sub-address for register write
 #define NO_SUB 0xFF
 
-#define WRITE      0x80
-#define WRITE_SUB  0xC0
-#define READ       0x00
-#define READ_SUB   0x40
+#define WRITE 0x80
+#define WRITE_SUB 0xC0
+#define READ 0x00
+#define READ_SUB 0x40
 #define RW_SUB_EXT 0x80
 
 // device control register
@@ -128,11 +133,11 @@ extern "C" {
 // NOTE: uses the bit definitions of SYS_STATUS (below 32)
 #define SYS_MASK 0x0E
 #define LEN_SYS_MASK 4
-  
+
   /* clocks available. */
 #define AUTO_CLOCK 0x00
-#define XTI_CLOCK  0x01
-#define PLL_CLOCK  0x02
+#define XTI_CLOCK 0x01
+#define PLL_CLOCK 0x02
 
 // OTP control (for LDE micro code loading only)
 #define OTP_IF 0x2D
@@ -152,77 +157,62 @@ extern "C" {
 #define PANADR 0x03
 #define LEN_PANADR 4
 
-void readBytes(uint8_t cmd, uint16_t offset, uint8_t data[], uint16_t n);
-void readSystemEventStatusRegister();
-void readSystemConfigurationRegister();
-void writeSystemConfigurationRegister();
-void readNetworkIdAndDeviceAddress();
-void writeNetworkIdAndDeviceAddress();
-void readSystemEventMaskRegister();
-void writeSystemEventMaskRegister();
-void readChannelControlRegister();
-void writeChannelControlRegister();
-void readTransmitFrameControlRegister();
-void writeTransmitFrameControlRegister();
-void setDoubleBuffering(uint8_t val);
-void setBit(uint8_t data[], uint16_t n, uint16_t bit, uint8_t val);
-uint8_t getBit(uint8_t data[], uint16_t n, uint16_t bit);
-void writeValueToBytes(uint8_t data[], int32_t val, uint16_t n);
-void writeBytes(uint8_t cmd, uint16_t offset, uint8_t data[], uint16_t data_size);
-void writeByte(uint8_t cmd, uint16_t offset, uint8_t data);
-void reset();
-void softReset();
-void idle();
-void spiBegin(uint8_t irq, uint8_t rst);
-void spiSelect(uint8_t ss);
-void enableClock(uint8_t clock);
-int writetospi(uint16_t headerLength,  uint8_t *headerBuffer, uint16_t bodyLength, uint8_t *bodyBuffer);
-int readfromspi(uint16_t headerLength, uint8_t *headerBuffer, uint16_t readLength, uint8_t *readBuffer);
+  void readBytes(uint8_t cmd, uint16_t offset, uint8_t data[], uint16_t n);
+  void readSystemEventStatusRegister();
+  void readSystemConfigurationRegister();
+  void writeSystemConfigurationRegister();
+  void readNetworkIdAndDeviceAddress();
+  void writeNetworkIdAndDeviceAddress();
+  void readSystemEventMaskRegister();
+  void writeSystemEventMaskRegister();
+  void readChannelControlRegister();
+  void writeChannelControlRegister();
+  void readTransmitFrameControlRegister();
+  void writeTransmitFrameControlRegister();
+  void setDoubleBuffering(uint8_t val);
+  void setBit(uint8_t data[], uint16_t n, uint16_t bit, uint8_t val);
+  uint8_t getBit(uint8_t data[], uint16_t n, uint16_t bit);
+  void writeValueToBytes(uint8_t data[], int32_t val, uint16_t n);
+  void writeBytes(uint8_t cmd, uint16_t offset, uint8_t data[], uint16_t data_size);
+  void writeByte(uint8_t cmd, uint16_t offset, uint8_t data);
+  void reset();
+  void softReset();
+  void idle();
+  void spiBegin(uint8_t irq, uint8_t rst);
+  void spiSelect(uint8_t ss);
+  void enableClock(uint8_t clock);
+  int writetospi(uint16_t headerLength, uint8_t *headerBuffer, uint16_t bodyLength, uint8_t *bodyBuffer);
+  int readfromspi(uint16_t headerLength, uint8_t *headerBuffer, uint16_t readLength, uint8_t *readBuffer);
 
-void Sleep(uint32_t d);
-void enableDebounceClock();
-void wakeup_device_with_io();
+  void Sleep(uint32_t d);
+  void enableDebounceClock();
+  void wakeup_device_with_io();
 
-void port_set_dw_ic_spi_fastrate(uint8_t irq = DEFAULT_IRQ, uint8_t rst = DEFAULT_RST, uint8_t ss = DEFAULT_SS);
+  void port_set_dw_ic_spi_fastrate(uint8_t irq = DEFAULT_IRQ, uint8_t rst = DEFAULT_RST, uint8_t ss = DEFAULT_SS);
 
-uint32_t port_GetEXT_IRQStatus(void);
-uint32_t port_CheckEXT_IRQ(void);
-void port_DisableEXT_IRQ(void);
-void port_EnableEXT_IRQ(void);
+  uint32_t port_GetEXT_IRQStatus(void);
+  uint32_t port_CheckEXT_IRQ(void);
+  void port_DisableEXT_IRQ(void);
+  void port_EnableEXT_IRQ(void);
 
-/* DW IC IRQ (EXTI15_10_IRQ) handler type. */
-typedef void (*port_dwic_isr_t)(void);
+  /* DW IC IRQ (EXTI15_10_IRQ) handler type. */
+  typedef void (*port_dwic_isr_t)(void);
 
-/*! ------------------------------------------------------------------------------------------------------------------
- * @fn port_set_DWIC_isr()
- *
- * @brief This function is used to install the handling function for DW1000 IRQ.
- *
- * NOTE:
- *   - As EXTI9_5_IRQHandler does not check that port_deca_isr is not null, the user application must ensure that a
- *     proper handler is set by calling this function before any DW1000 IRQ occurs!
- *   - This function makes sure the DW1000 IRQ line is deactivated while the handler is installed.
- *
- * @param deca_isr function pointer to DW1000 interrupt handler to install
- *
- * @return none
- */
-void port_set_dwic_isr(port_dwic_isr_t isr);
-
-#if 0
-void sleepms(uint32_t x);
-int sleepus(uint32_t x);
-void deca_sleep(uint8_t time_ms);
-void deca_usleep(uint8_t time_us);
-void open_spi(void);
-void close_spi(void);
-
-
-void port_set_dw_ic_spi_slowrate(void);
-void port_set_dw_ic_spi_fastrate(void);
-void reset_DWIC(void);
-int spi_tranceiver (uint8_t *data);
-#endif
+  /*! ------------------------------------------------------------------------------------------------------------------
+   * @fn port_set_DWIC_isr()
+   *
+   * @brief This function is used to install the handling function for DW1000 IRQ.
+   *
+   * NOTE:
+   *   - As EXTI9_5_IRQHandler does not check that port_deca_isr is not null, the user application must ensure that a
+   *     proper handler is set by calling this function before any DW1000 IRQ occurs!
+   *   - This function makes sure the DW1000 IRQ line is deactivated while the handler is installed.
+   *
+   * @param deca_isr function pointer to DW1000 interrupt handler to install
+   *
+   * @return none
+   */
+  void port_set_dwic_isr(port_dwic_isr_t isr);
 
 #ifdef __cplusplus
 }
