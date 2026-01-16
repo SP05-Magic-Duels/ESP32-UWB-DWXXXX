@@ -24,19 +24,17 @@
 #ifndef _DW1000Device_H_INCLUDED
 #define _DW1000Device_H_INCLUDED
 
-#ifdef __cplusplus
-// extern "C"
-// {
-#endif
-
 #define INACTIVITY_TIME 1000
 
-#include <cmath>
-#include <random>
+#include <time.h>
+#include <math.h>
+
 #include "esp_timer.h"
 
 #include "DW1000Time.h"
 #include "DW1000Mac.h"
+
+#ifdef __cplusplus
 
 // Wrapper for millis() function
 static uint32_t millis();
@@ -117,8 +115,6 @@ private:
 	void randomShortAddress();
 };
 
-#ifdef __cplusplus
-// }
-#endif
+#endif // __cplusplus
 
-#endif
+#endif // _DW1000Device_H_INCLUDED

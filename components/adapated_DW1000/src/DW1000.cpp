@@ -1774,11 +1774,11 @@ void DW1000Class::setData(uint8_t data[], uint16_t n)
 	_txfctrl[1] |= (uint8_t)((n >> 8) & 0x03); // 2 added bits if extended length
 }
 
-void DW1000Class::setData(const std::string &data)
+void DW1000Class::setData(char *data)
 {
-	uint16_t n = data.length() + 1;
+	uint16_t n = strlen(data) + 1;
 	uint8_t *dataBytes = (uint8_t *)malloc(n);
-	strcpy((uint8_t *)dataBytes, data.c_str()); // data.getBytes(dataBytes, n);
+	strcpy((char *)dataBytes, data); // data.getBytes(dataBytes, n);
 	setData(dataBytes, n);
 	free(dataBytes);
 }
@@ -1815,7 +1815,7 @@ void DW1000Class::getData(uint8_t data[], uint16_t n)
 	readBytes(RX_BUFFER, NO_SUB, data, n);
 }
 
-void DW1000Class::getData(std::string &data)
+void DW1000Class::getData(char *data)
 {
 	uint16_t i;
 	uint16_t n = getDataLength(); // number of bytes w/o the two FCS ones
@@ -1826,7 +1826,7 @@ void DW1000Class::getData(std::string &data)
 	uint8_t *dataBytes = (uint8_t *)malloc(n);
 	getData(dataBytes, n);
 	// clear std::string
-	data.erase(0, 1); // data.remove(0);
+	// data.remove(0);
 	data = "";
 	// append to std::string
 	for (i = 0; i < n; i++)

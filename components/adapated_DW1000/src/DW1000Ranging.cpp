@@ -27,9 +27,6 @@
  */
 
 #include "DW1000Ranging.h"
-#include "DW1000Device.h"
-
-#include "esp_log.h"
 
 DW1000RangingClass DW1000Ranging;
 
@@ -162,10 +159,15 @@ void DW1000RangingClass::startAsAnchor(char address[], const uint8_t mode[], con
 	ESP_LOGI(RANGING_TAG, " device address:: %s\n", address);
 	if (randomShortAddress)
 	{
-		// we need to define a random short address:
-		randomSeed(analogRead(0));
-		_currentShortAddress[0] = random(0, 256);
-		_currentShortAddress[1] = random(0, 256);
+		// // we need to define a random short address:
+		// randomSeed(analogRead(0));
+		// _currentShortAddress[0] = random(0, 256);
+		// _currentShortAddress[1] = random(0, 256);
+
+		// Resource: https://www.w3schools.com/c/c_random_numbers.php
+		srand(time(NULL));
+		_currentShortAddress[0] = (uint8_t)(rand() % 256);
+		_currentShortAddress[1] = (uint8_t)(rand() % 256);
 	}
 	else
 	{
@@ -196,10 +198,15 @@ void DW1000RangingClass::startAsTag(char address[], const uint8_t mode[], const 
 	ESP_LOGI(RANGING_TAG, "device address: %s\n", address);
 	if (randomShortAddress)
 	{
-		// we need to define a random short address:
-		randomSeed(analogRead(0));
-		_currentShortAddress[0] = random(0, 256);
-		_currentShortAddress[1] = random(0, 256);
+		// // we need to define a random short address:
+		// randomSeed(analogRead(0));
+		// _currentShortAddress[0] = random(0, 256);
+		// _currentShortAddress[1] = random(0, 256);
+
+		// Resource: https://www.w3schools.com/c/c_random_numbers.php
+		srand(time(NULL));
+		_currentShortAddress[0] = (uint8_t)(rand() % 256);
+		_currentShortAddress[1] = (uint8_t)(rand() % 256);
 	}
 	else
 	{

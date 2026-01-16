@@ -25,21 +25,16 @@
  * - HSRBP in SYS_CTRL to determine in double buffered mode from which buffer to read
  */
 
+// Resource: https://krutarthpurohit.medium.com/implementing-spi-protocol-on-esp32-idf-5-1-version-6f2383af1c22
+
 #ifndef _DW1000_H_INCLUDED
 #define _DW1000_H_INCLUDED
 
 #ifdef __cplusplus
-// extern "C"
-// {
-#endif
-
-// Resource: https://krutarthpurohit.medium.com/implementing-spi-protocol-on-esp32-idf-5-1-version-6f2383af1c22
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <string> // C++ standard library
-#include <cmath>  // C++ standard library
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -270,9 +265,9 @@ public:
 	static DW1000Time setDelay(const DW1000Time &delay);
 	static void receivePermanently(uint8_t val);
 	static void setData(uint8_t data[], uint16_t n);
-	static void setData(const std::string &data);
+	static void setData(char *data);
 	static void getData(uint8_t data[], uint16_t n);
-	static void getData(std::string &data);
+	static void getData(char *data);
 	static uint16_t getDataLength();
 	static void getTransmitTimestamp(DW1000Time &time);
 	static void getReceiveTimestamp(DW1000Time &time);
@@ -626,8 +621,6 @@ public:
 
 extern DW1000Class DW1000;
 
-#endif
+#endif // __cplusplus
 
-#ifdef __cplusplus
-// }
-#endif
+#endif // _DW1000_H_INCLUDED

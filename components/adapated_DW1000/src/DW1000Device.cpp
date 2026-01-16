@@ -140,14 +140,10 @@ float DW1000Device::getQuality() { return float(_quality) / 100.0f; }
 
 void DW1000Device::randomShortAddress()
 {
-	// Resource: https://www.geeksforgeeks.org/cpp/how-to-generate-random-number-in-range-in-cpp/
-	// Initialize a random number generator
-	std::random_device rd;
-	std::mt19937 gen(rd());
-	std::uniform_int_distribution<> distrib(0, 255);
-
-	_shortAddress[0] = (uint8_t)(distrib(gen));
-	_shortAddress[1] = (uint8_t)(distrib(gen));
+	// Resource: https://www.w3schools.com/c/c_random_numbers.php
+	srand(time(NULL));
+	_shortAddress[0] = (uint8_t)(rand() % 256);
+	_shortAddress[1] = (uint8_t)(rand() % 256);
 }
 
 void DW1000Device::noteActivity()

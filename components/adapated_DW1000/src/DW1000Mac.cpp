@@ -23,7 +23,6 @@
  */
 
 #include "DW1000Mac.h"
-#include "DW1000Ranging.h"
 
 // Constructor and destructor
 
