@@ -35,86 +35,95 @@
 #include "DW1000Mac.h"
 
 #ifdef __cplusplus
-
-// Wrapper for millis() function
-static uint32_t millis();
-
-class DW1000Mac;
-
-class DW1000Device;
-
-class DW1000Device
+extern "C"
 {
-public:
-	// Constructor and destructor
-	DW1000Device();
-	DW1000Device(uint8_t address[], uint8_t shortAddress[]);
-	DW1000Device(uint8_t address[], uint8_t shortOne = false);
-	~DW1000Device();
+#endif
 
-	// setters:
-	void setReplyTime(uint16_t replyDelayTimeUs);
-	void setAddress(char address[]);
-	void setAddress(uint8_t *address);
-	void setShortAddress(uint8_t address[]);
+	// Wrapper for millis() function
+	uint32_t millis();
 
-	void setRange(float range);
-	void setRXPower(float power);
-	void setFPPower(float power);
-	void setQuality(float quality);
+	class DW1000Mac;
 
-	void setReplyDelayTime(uint16_t time) { _replyDelayTimeUS = time; }
+	class DW1000Device;
 
-	void setIndex(int8_t index) { _index = index; }
+	class DW1000Device
+	{
+	public:
+		// For copying purposes
+		DW1000Device(const DW1000Device &) = default;
+		DW1000Device &operator=(const DW1000Device &) = default;
 
-	// getters
-	uint16_t getReplyTime() { return _replyDelayTimeUS; }
+		// Constructor and destructor
+		DW1000Device();
+		DW1000Device(uint8_t address[], uint8_t shortAddress[]);
+		DW1000Device(uint8_t address[], uint8_t shortOne = false);
+		~DW1000Device();
 
-	uint8_t *getByteAddress();
+		// setters:
+		void setReplyTime(uint16_t replyDelayTimeUs);
+		void setAddress(char address[]);
+		void setAddress(uint8_t *address);
+		void setShortAddress(uint8_t address[]);
 
-	int8_t getIndex() { return _index; }
+		void setRange(float range);
+		void setRXPower(float power);
+		void setFPPower(float power);
+		void setQuality(float quality);
 
-	// String getAddress();
-	uint8_t *getByteShortAddress();
-	uint16_t getShortAddress();
-	// String getShortAddress();
+		void setReplyDelayTime(uint16_t time) { _replyDelayTimeUS = time; }
 
-	float getRange();
-	float getRXPower();
-	float getFPPower();
-	float getQuality();
+		void setIndex(int8_t index) { _index = index; }
 
-	uint8_t isAddressEqual(DW1000Device *device);
-	uint8_t isShortAddressEqual(DW1000Device *device);
+		// getters
+		uint16_t getReplyTime() { return _replyDelayTimeUS; }
 
-	// functions which contains the date: (easier to put as public)
-	//  timestamps to remember
-	DW1000Time timePollSent;
-	DW1000Time timePollReceived;
-	DW1000Time timePollAckSent;
-	DW1000Time timePollAckReceived;
-	DW1000Time timeRangeSent;
-	DW1000Time timeRangeReceived;
+		uint8_t *getByteAddress();
 
-	void noteActivity();
-	uint8_t isInactive();
+		int8_t getIndex() { return _index; }
 
-private:
-	// device ID
-	uint8_t _ownAddress[8];
-	uint8_t _shortAddress[2];
-	int32_t _activity;
-	uint16_t _replyDelayTimeUS;
-	int8_t _index; // not used
+		// String getAddress();
+		uint8_t *getByteShortAddress();
+		uint16_t getShortAddress();
+		// String getShortAddress();
 
-	int16_t _range;
-	int16_t _RXPower;
-	int16_t _FPPower;
-	int16_t _quality;
+		float getRange();
+		float getRXPower();
+		float getFPPower();
+		float getQuality();
 
-	void randomShortAddress();
-};
+		uint8_t isAddressEqual(DW1000Device *device);
+		uint8_t isShortAddressEqual(DW1000Device *device);
 
+		// functions which contains the date: (easier to put as public)
+		//  timestamps to remember
+		DW1000Time timePollSent;
+		DW1000Time timePollReceived;
+		DW1000Time timePollAckSent;
+		DW1000Time timePollAckReceived;
+		DW1000Time timeRangeSent;
+		DW1000Time timeRangeReceived;
+
+		void noteActivity();
+		uint8_t isInactive();
+
+	private:
+		// device ID
+		uint8_t _ownAddress[8];
+		uint8_t _shortAddress[2];
+		int32_t _activity;
+		uint16_t _replyDelayTimeUS;
+		int8_t _index; // not used
+
+		int16_t _range;
+		int16_t _RXPower;
+		int16_t _FPPower;
+		int16_t _quality;
+
+		void randomShortAddress();
+	};
+
+#ifdef __cplusplus
+}
 #endif // __cplusplus
 
 #endif // _DW1000Device_H_INCLUDED

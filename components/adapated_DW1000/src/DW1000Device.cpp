@@ -22,10 +22,9 @@
  */
 
 #include "DW1000Device.h"
-#include "DW1000.h"
 
 // Wrapper for millis() function
-static uint32_t millis()
+extern "C" uint32_t millis()
 {
 	// esp_timer_get_time() returns a 64-bit value in microseconds.
 	// Divide by 1000 to get milliseconds.
@@ -33,12 +32,12 @@ static uint32_t millis()
 }
 
 // Constructor and destructor
-DW1000Device::DW1000Device()
+extern "C" DW1000Device::DW1000Device()
 {
 	randomShortAddress();
 }
 
-DW1000Device::DW1000Device(uint8_t deviceAddress[], uint8_t shortOne)
+extern "C" DW1000Device::DW1000Device(uint8_t deviceAddress[], uint8_t shortOne)
 {
 	if (!shortOne)
 	{
@@ -53,7 +52,7 @@ DW1000Device::DW1000Device(uint8_t deviceAddress[], uint8_t shortOne)
 	}
 }
 
-DW1000Device::DW1000Device(uint8_t deviceAddress[], uint8_t shortAddress[])
+extern "C" DW1000Device::DW1000Device(uint8_t deviceAddress[], uint8_t shortAddress[])
 {
 	// we have a 8 bytes address
 	setAddress(deviceAddress);
@@ -61,34 +60,34 @@ DW1000Device::DW1000Device(uint8_t deviceAddress[], uint8_t shortAddress[])
 	setShortAddress(shortAddress);
 }
 
-DW1000Device::~DW1000Device()
+extern "C" DW1000Device::~DW1000Device()
 {
 }
 
 // setters:
-void DW1000Device::setReplyTime(uint16_t replyDelayTimeUs) { _replyDelayTimeUS = replyDelayTimeUs; }
+extern "C" void DW1000Device::setReplyTime(uint16_t replyDelayTimeUs) { _replyDelayTimeUS = replyDelayTimeUs; }
 
-void DW1000Device::setAddress(char deviceAddress[]) { DW1000.convertToByte(deviceAddress, _ownAddress); }
+extern "C" void DW1000Device::setAddress(char deviceAddress[]) { DW1000.convertToByte(deviceAddress, _ownAddress); }
 
-void DW1000Device::setAddress(uint8_t *deviceAddress)
+extern "C" void DW1000Device::setAddress(uint8_t *deviceAddress)
 {
 	memcpy(_ownAddress, deviceAddress, 8);
 }
 
-void DW1000Device::setShortAddress(uint8_t deviceAddress[])
+extern "C" void DW1000Device::setShortAddress(uint8_t deviceAddress[])
 {
 	memcpy(_shortAddress, deviceAddress, 2);
 }
 
-void DW1000Device::setRange(float range) { _range = round(range * 100); }
+extern "C" void DW1000Device::setRange(float range) { _range = round(range * 100); }
 
-void DW1000Device::setRXPower(float RXPower) { _RXPower = round(RXPower * 100); }
+extern "C" void DW1000Device::setRXPower(float RXPower) { _RXPower = round(RXPower * 100); }
 
-void DW1000Device::setFPPower(float FPPower) { _FPPower = round(FPPower * 100); }
+extern "C" void DW1000Device::setFPPower(float FPPower) { _FPPower = round(FPPower * 100); }
 
-void DW1000Device::setQuality(float quality) { _quality = round(quality * 100); }
+extern "C" void DW1000Device::setQuality(float quality) { _quality = round(quality * 100); }
 
-uint8_t *DW1000Device::getByteAddress()
+extern "C" uint8_t *DW1000Device::getByteAddress()
 {
 	return _ownAddress;
 }
@@ -101,7 +100,7 @@ String DW1000Device::getAddress(){
 	return String(string);
 }*/
 
-uint8_t *DW1000Device::getByteShortAddress()
+extern "C" uint8_t *DW1000Device::getByteShortAddress()
 {
 	return _shortAddress;
 }
@@ -115,30 +114,30 @@ String DW1000Device::getShortAddress(){
 }
 */
 
-uint16_t DW1000Device::getShortAddress()
+extern "C" uint16_t DW1000Device::getShortAddress()
 {
 	return _shortAddress[1] * 256 + _shortAddress[0];
 }
 
-uint8_t DW1000Device::isAddressEqual(DW1000Device *device)
+extern "C" uint8_t DW1000Device::isAddressEqual(DW1000Device *device)
 {
 	return memcmp(this->getByteAddress(), device->getByteAddress(), 8) == 0;
 }
 
-uint8_t DW1000Device::isShortAddressEqual(DW1000Device *device)
+extern "C" uint8_t DW1000Device::isShortAddressEqual(DW1000Device *device)
 {
 	return memcmp(this->getByteShortAddress(), device->getByteShortAddress(), 2) == 0;
 }
 
-float DW1000Device::getRange() { return float(_range) / 100.0f; }
+extern "C" float DW1000Device::getRange() { return float(_range) / 100.0f; }
 
-float DW1000Device::getRXPower() { return float(_RXPower) / 100.0f; }
+extern "C" float DW1000Device::getRXPower() { return float(_RXPower) / 100.0f; }
 
-float DW1000Device::getFPPower() { return float(_FPPower) / 100.0f; }
+extern "C" float DW1000Device::getFPPower() { return float(_FPPower) / 100.0f; }
 
-float DW1000Device::getQuality() { return float(_quality) / 100.0f; }
+extern "C" float DW1000Device::getQuality() { return float(_quality) / 100.0f; }
 
-void DW1000Device::randomShortAddress()
+extern "C" void DW1000Device::randomShortAddress()
 {
 	// Resource: https://www.w3schools.com/c/c_random_numbers.php
 	srand(time(NULL));
@@ -146,12 +145,12 @@ void DW1000Device::randomShortAddress()
 	_shortAddress[1] = (uint8_t)(rand() % 256);
 }
 
-void DW1000Device::noteActivity()
+extern "C" void DW1000Device::noteActivity()
 {
 	_activity = millis();
 }
 
-uint8_t DW1000Device::isInactive()
+extern "C" uint8_t DW1000Device::isInactive()
 {
 	// One second of inactivity
 	if (millis() - _activity > INACTIVITY_TIME)

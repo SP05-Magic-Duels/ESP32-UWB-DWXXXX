@@ -7,8 +7,17 @@
 #                                              --> https://forum.allaboutcircuits.com/threads/using-esp-idf-with-vscode-adding-custom-component.181145/
 cmake_minimum_required(VERSION 3.16)
 
-file(GLOB DW1000_SOURCE_FILES "*.c, *.cpp")
-
-idf_component_register(SRCS "${DW1000_SOURCE_FILES}"
+idf_component_register(SRCS 
+                            "src/DW1000Ranging.cpp"
+                            "src/DW1000Time.cpp"
+                            "src/DW1000Mac.cpp"
+                            "src/DW1000Device.cpp"
+                            "src/DW1000.cpp"
                        INCLUDE_DIRS "src"
+                       REQUIRES 
+                            "driver"
+                            "esp_timer"
+                            "freertos"
                        )
+
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)

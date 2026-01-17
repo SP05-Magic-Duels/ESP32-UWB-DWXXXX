@@ -25,7 +25,7 @@
 /**
  * Initiates DW1000Time with 0
  */
-DW1000Time::DW1000Time()
+extern "C" DW1000Time::DW1000Time()
 {
 	_timestamp = 0;
 }
@@ -34,7 +34,7 @@ DW1000Time::DW1000Time()
  * Initiates DW1000Time with timestamp
  * @param time timestamp with intervall 1 is approx. 15ps
  */
-DW1000Time::DW1000Time(int64_t time)
+extern "C" DW1000Time::DW1000Time(int64_t time)
 {
 	setTimestamp(time);
 }
@@ -43,7 +43,7 @@ DW1000Time::DW1000Time(int64_t time)
  * Initiates DW1000Time with timestamp
  * @param data timestamp as uint8_t array
  */
-DW1000Time::DW1000Time(uint8_t data[])
+extern "C" DW1000Time::DW1000Time(uint8_t data[])
 {
 	setTimestamp(data);
 }
@@ -52,7 +52,7 @@ DW1000Time::DW1000Time(uint8_t data[])
  * Initiates DW100Time with another instance
  * @param copy other instance
  */
-DW1000Time::DW1000Time(const DW1000Time &copy)
+extern "C" DW1000Time::DW1000Time(const DW1000Time &copy)
 {
 	setTimestamp(copy);
 }
@@ -62,7 +62,7 @@ DW1000Time::DW1000Time(const DW1000Time &copy)
  * @param timeUs time in micro seconds
  * @todo maybe replace by better function without float
  */
-DW1000Time::DW1000Time(float timeUs)
+extern "C" DW1000Time::DW1000Time(float timeUs)
 {
 	setTime(timeUs);
 }
@@ -73,7 +73,7 @@ DW1000Time::DW1000Time(float timeUs)
  * @param factorUs multiply factor for time
  * @todo maybe replace by better function without float
  */
-DW1000Time::DW1000Time(int32_t value, float factorUs)
+extern "C" DW1000Time::DW1000Time(int32_t value, float factorUs)
 {
 	setTime(value, factorUs);
 }
@@ -81,13 +81,13 @@ DW1000Time::DW1000Time(int32_t value, float factorUs)
 /**
  * Empty
  */
-DW1000Time::~DW1000Time() {}
+extern "C" DW1000Time::~DW1000Time() {}
 
 /**
  * Set timestamp
  * @param value - timestamp with intervall 1 is approx. 15ps
  */
-void DW1000Time::setTimestamp(int64_t value)
+extern "C" void DW1000Time::setTimestamp(int64_t value)
 {
 	_timestamp = value;
 }
@@ -96,7 +96,7 @@ void DW1000Time::setTimestamp(int64_t value)
  * Set timestamp
  * @param data timestamp as uint8_t array
  */
-void DW1000Time::setTimestamp(uint8_t data[])
+extern "C" void DW1000Time::setTimestamp(uint8_t data[])
 {
 	_timestamp = 0;
 	for (uint8_t i = 0; i < LENGTH_TIMESTAMP; i++)
@@ -109,7 +109,7 @@ void DW1000Time::setTimestamp(uint8_t data[])
  * Set timestamp from other instance
  * @param copy instance where the timestamp should be copied
  */
-void DW1000Time::setTimestamp(const DW1000Time &copy)
+extern "C" void DW1000Time::setTimestamp(const DW1000Time &copy)
 {
 	_timestamp = copy.getTimestamp();
 }
@@ -119,7 +119,7 @@ void DW1000Time::setTimestamp(const DW1000Time &copy)
  * @param timeUs time in micro seconds
  * @todo maybe replace by better function without float
  */
-void DW1000Time::setTime(float timeUs)
+extern "C" void DW1000Time::setTime(float timeUs)
 {
 	_timestamp = (int64_t)(timeUs * TIME_RES_INV);
 	//	_timestamp %= TIME_OVERFLOW; // clean overflow
@@ -131,7 +131,7 @@ void DW1000Time::setTime(float timeUs)
  * @param factorUs multiply factor for time
  * @todo maybe replace by better function without float
  */
-void DW1000Time::setTime(int32_t value, float factorUs)
+extern "C" void DW1000Time::setTime(int32_t value, float factorUs)
 {
 	// float tsValue = value*factorUs;
 	// tsValue = fmod(tsValue, TIME_OVERFLOW);
@@ -143,7 +143,7 @@ void DW1000Time::setTime(int32_t value, float factorUs)
  * Get timestamp as integer
  * @return timestamp as integer
  */
-int64_t DW1000Time::getTimestamp() const
+extern "C" int64_t DW1000Time::getTimestamp() const
 {
 	return _timestamp;
 }
@@ -152,7 +152,7 @@ int64_t DW1000Time::getTimestamp() const
  * Get timestamp as uint8_t array
  * @param data var where data should be written
  */
-void DW1000Time::getTimestamp(uint8_t data[]) const
+extern "C" void DW1000Time::getTimestamp(uint8_t data[]) const
 {
 	memset(data, 0, LENGTH_TIMESTAMP);
 	for (uint8_t i = 0; i < LENGTH_TIMESTAMP; i++)
@@ -166,7 +166,7 @@ void DW1000Time::getTimestamp(uint8_t data[]) const
  * @return time in micro seconds
  * @deprecated use getAsMicroSeconds()
  */
-float DW1000Time::getAsFloat() const
+extern "C" float DW1000Time::getAsFloat() const
 {
 	// return fmod((float)_timestamp, TIME_OVERFLOW)*TIME_RES;
 	return getAsMicroSeconds();
@@ -176,7 +176,7 @@ float DW1000Time::getAsFloat() const
  * Return real time in micro seconds
  * @return time in micro seconds
  */
-float DW1000Time::getAsMicroSeconds() const
+extern "C" float DW1000Time::getAsMicroSeconds() const
 {
 	return (_timestamp % TIME_OVERFLOW) * TIME_RES;
 }
@@ -186,7 +186,7 @@ float DW1000Time::getAsMicroSeconds() const
  * this is useful for e.g. time of flight
  * @return distance in meters
  */
-float DW1000Time::getAsMeters() const
+extern "C" float DW1000Time::getAsMeters() const
 {
 	// return fmod((float)_timestamp, TIME_OVERFLOW)*DISTANCE_OF_RADIO;
 	return (_timestamp % TIME_OVERFLOW) * DISTANCE_OF_RADIO;
@@ -202,7 +202,7 @@ float DW1000Time::getAsMeters() const
  * Wrap calculation: -990 + 1000 = 10 -> correct time
  * @return
  */
-DW1000Time &DW1000Time::wrap()
+extern "C" DW1000Time &DW1000Time::wrap()
 {
 	if (_timestamp < 0)
 	{
@@ -215,13 +215,13 @@ DW1000Time &DW1000Time::wrap()
  * Check if timestamp is valid for usage with DW1000 device
  * @return true if valid, false if negative or overflow (maybe after calculation)
  */
-bool DW1000Time::isValidTimestamp()
+extern "C" bool DW1000Time::isValidTimestamp()
 {
 	return (0 <= _timestamp && _timestamp <= TIME_MAX);
 }
 
 // assign
-DW1000Time &DW1000Time::operator=(const DW1000Time &assign)
+extern "C" DW1000Time &DW1000Time::operator=(const DW1000Time &assign)
 {
 	if (this == &assign)
 	{
@@ -232,31 +232,31 @@ DW1000Time &DW1000Time::operator=(const DW1000Time &assign)
 }
 
 // add
-DW1000Time &DW1000Time::operator+=(const DW1000Time &add)
+extern "C" DW1000Time &DW1000Time::operator+=(const DW1000Time &add)
 {
 	_timestamp += add.getTimestamp();
 	return *this;
 }
 
-DW1000Time DW1000Time::operator+(const DW1000Time &add) const
+extern "C" DW1000Time DW1000Time::operator+(const DW1000Time &add) const
 {
 	return DW1000Time(*this) += add;
 }
 
 // subtract
-DW1000Time &DW1000Time::operator-=(const DW1000Time &sub)
+extern "C" DW1000Time &DW1000Time::operator-=(const DW1000Time &sub)
 {
 	_timestamp -= sub.getTimestamp();
 	return *this;
 }
 
-DW1000Time DW1000Time::operator-(const DW1000Time &sub) const
+extern "C" DW1000Time DW1000Time::operator-(const DW1000Time &sub) const
 {
 	return DW1000Time(*this) -= sub;
 }
 
 // multiply
-DW1000Time &DW1000Time::operator*=(float factor)
+extern "C" DW1000Time &DW1000Time::operator*=(float factor)
 {
 	// float tsValue = (float)_timestamp*factor;
 	//_timestamp = (int64_t)tsValue;
@@ -264,53 +264,53 @@ DW1000Time &DW1000Time::operator*=(float factor)
 	return *this;
 }
 
-DW1000Time DW1000Time::operator*(float factor) const
+extern "C" DW1000Time DW1000Time::operator*(float factor) const
 {
 	return DW1000Time(*this) *= factor;
 }
 
-DW1000Time &DW1000Time::operator*=(const DW1000Time &factor)
+extern "C" DW1000Time &DW1000Time::operator*=(const DW1000Time &factor)
 {
 	_timestamp *= factor.getTimestamp();
 	return *this;
 }
 
-DW1000Time DW1000Time::operator*(const DW1000Time &factor) const
+extern "C" DW1000Time DW1000Time::operator*(const DW1000Time &factor) const
 {
 	return DW1000Time(*this) *= factor;
 }
 
 // divide
-DW1000Time &DW1000Time::operator/=(float factor)
+extern "C" DW1000Time &DW1000Time::operator/=(float factor)
 {
 	//_timestamp *= (1.0f/factor);
 	_timestamp /= factor;
 	return *this;
 }
 
-DW1000Time DW1000Time::operator/(float factor) const
+extern "C" DW1000Time DW1000Time::operator/(float factor) const
 {
 	return DW1000Time(*this) /= factor;
 }
 
-DW1000Time &DW1000Time::operator/=(const DW1000Time &factor)
+extern "C" DW1000Time &DW1000Time::operator/=(const DW1000Time &factor)
 {
 	_timestamp /= factor.getTimestamp();
 	return *this;
 }
 
-DW1000Time DW1000Time::operator/(const DW1000Time &factor) const
+extern "C" DW1000Time DW1000Time::operator/(const DW1000Time &factor) const
 {
 	return DW1000Time(*this) /= factor;
 }
 
 // compare
-uint8_t DW1000Time::operator==(const DW1000Time &cmp) const
+extern "C" uint8_t DW1000Time::operator==(const DW1000Time &cmp) const
 {
 	return _timestamp == cmp.getTimestamp();
 }
 
-uint8_t DW1000Time::operator!=(const DW1000Time &cmp) const
+extern "C" uint8_t DW1000Time::operator!=(const DW1000Time &cmp) const
 {
 	// return !(*this == cmp); // seems not as intended
 	return _timestamp != cmp.getTimestamp();

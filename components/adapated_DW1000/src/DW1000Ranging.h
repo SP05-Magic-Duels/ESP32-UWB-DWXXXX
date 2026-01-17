@@ -40,6 +40,9 @@
 #include "DW1000Mac.h"
 
 #ifdef __cplusplus
+extern "C"
+{
+#endif
 
 #define RANGING_TAG "DW1000_RANGING"
 
@@ -79,144 +82,152 @@
 #define DEBUG false
 #endif
 
-class DW1000RangingClass
-{
-public:
-	// variables
-	//  data buffer
-	static uint8_t data[LEN_DATA];
+	class DW1000Mac;
 
-	// initialisation
-	static void initCommunication(uint8_t myRST = DEFAULT_RST_PIN, uint8_t mySS = DEFAULT_SPI_SS_PIN, uint8_t myIRQ = 2);
-	static void configureNetwork(uint16_t deviceAddress, uint16_t networkId, const uint8_t mode[]);
-	static void generalStart();
-	static void startAsAnchor(char address[], const uint8_t mode[], const bool randomShortAddress = true);
-	static void startAsTag(char address[], const uint8_t mode[], const bool randomShortAddress = true);
-	static uint8_t addNetworkDevices(DW1000Device *device, uint8_t shortAddress);
-	static uint8_t addNetworkDevices(DW1000Device *device);
-	static void removeNetworkDevices(int16_t index);
+	class DW1000Device;
 
-	// setters
-	static void setReplyTime(uint16_t replyDelayTimeUs);
-	static void setResetPeriod(uint32_t resetPeriod);
+	class DW1000Time;
 
-	// getters
-	static uint8_t *getCurrentAddress() { return _currentAddress; };
+	class DW1000RangingClass
+	{
+	public:
+		// variables
+		//  data buffer
+		static uint8_t data[LEN_DATA];
 
-	static uint8_t *getCurrentShortAddress() { return _currentShortAddress; };
+		// initialisation
+		static void initCommunication(uint8_t myRST = DEFAULT_RST_PIN, uint8_t mySS = DEFAULT_SPI_SS_PIN, uint8_t myIRQ = 2);
+		static void configureNetwork(uint16_t deviceAddress, uint16_t networkId, const uint8_t mode[]);
+		static void generalStart();
+		static void startAsAnchor(char address[], const uint8_t mode[], const bool randomShortAddress = true);
+		static void startAsTag(char address[], const uint8_t mode[], const bool randomShortAddress = true);
+		static uint8_t addNetworkDevices(DW1000Device *device, uint8_t shortAddress);
+		static uint8_t addNetworkDevices(DW1000Device *device);
+		static void removeNetworkDevices(int16_t index);
 
-	static uint8_t getNetworkDevicesNumber() { return _networkDevicesNumber; };
+		// setters
+		static void setReplyTime(uint16_t replyDelayTimeUs);
+		static void setResetPeriod(uint32_t resetPeriod);
 
-	// ranging functions
-	static int16_t detectMessageType(uint8_t datas[]); // TODO check return type
-	static void loop();
-	static void useRangeFilter(uint8_t enabled);
-	// Used for the smoothing algorithm (Exponential Moving Average). newValue must be >= 2. Default 15.
-	static void setRangeFilterValue(uint16_t newValue);
+		// getters
+		static uint8_t *getCurrentAddress() { return _currentAddress; };
 
-	// Handlers:
-	static void attachNewRange(void (*handleNewRange)(void)) { _handleNewRange = handleNewRange; };
+		static uint8_t *getCurrentShortAddress() { return _currentShortAddress; };
 
-	static void attachBlinkDevice(void (*handleBlinkDevice)(DW1000Device *)) { _handleBlinkDevice = handleBlinkDevice; };
+		static uint8_t getNetworkDevicesNumber() { return _networkDevicesNumber; };
 
-	static void attachNewDevice(void (*handleNewDevice)(DW1000Device *)) { _handleNewDevice = handleNewDevice; };
+		// ranging functions
+		static int16_t detectMessageType(uint8_t datas[]); // TODO check return type
+		static void loop();
+		static void useRangeFilter(uint8_t enabled);
+		// Used for the smoothing algorithm (Exponential Moving Average). newValue must be >= 2. Default 15.
+		static void setRangeFilterValue(uint16_t newValue);
 
-	static void attachInactiveDevice(void (*handleInactiveDevice)(DW1000Device *)) { _handleInactiveDevice = handleInactiveDevice; };
+		// Handlers:
+		static void attachNewRange(void (*handleNewRange)(void)) { _handleNewRange = handleNewRange; };
 
-	static DW1000Device *getDistantDevice();
-	static DW1000Device *searchDistantDevice(uint8_t shortAddress[]);
+		static void attachBlinkDevice(void (*handleBlinkDevice)(DW1000Device *)) { _handleBlinkDevice = handleBlinkDevice; };
 
-	// FOR DEBUGGING
-	static void visualizeDatas(uint8_t datas[]);
+		static void attachNewDevice(void (*handleNewDevice)(DW1000Device *)) { _handleNewDevice = handleNewDevice; };
 
-private:
-	// other devices in the network
-	static DW1000Device _networkDevices[MAX_DEVICES];
-	static volatile uint8_t _networkDevicesNumber;
-	static int16_t _lastDistantDevice;
-	static uint8_t _currentAddress[8];
-	static uint8_t _currentShortAddress[2];
-	static uint8_t _lastSentToShortAddress[2];
-	static DW1000Mac _globalMac;
-	static int32_t timer;
-	static int16_t counterForBlink;
+		static void attachInactiveDevice(void (*handleInactiveDevice)(DW1000Device *)) { _handleInactiveDevice = handleInactiveDevice; };
 
-	// Handlers:
-	static void (*_handleNewRange)(void);
-	static void (*_handleBlinkDevice)(DW1000Device *);
-	static void (*_handleNewDevice)(DW1000Device *);
-	static void (*_handleInactiveDevice)(DW1000Device *);
+		static DW1000Device *getDistantDevice();
+		static DW1000Device *searchDistantDevice(uint8_t shortAddress[]);
 
-	// sketch type (tag or anchor)
-	static int16_t _type; // 0 for tag and 1 for anchor
-	// TODO check type, maybe enum?
-	// message flow state
-	static volatile uint8_t _expectedMsgId;
-	// message sent/received state
-	static volatile uint8_t _sentAck;
-	static volatile uint8_t _receivedAck;
-	// protocol error state
-	static uint8_t _protocolFailed;
-	// reset line to the chip
-	static uint8_t _RST;
-	static uint8_t _SS;
-	// watchdog and reset period
-	static uint32_t _lastActivity;
-	static uint32_t _resetPeriod;
-	// reply times (same on both sides for symm. ranging)
-	static uint16_t _replyDelayTimeUS;
-	// timer Tick delay
-	static uint16_t _timerDelay;
-	// ranging counter (per second)
-	static uint16_t _successRangingCount;
-	static uint32_t _rangingCountPeriod;
-	// ranging filter
-	static volatile uint8_t _useRangeFilter;
-	static uint16_t _rangeFilterValue;
-	//_bias correction
-	static char _bias_RSL[17]; // TODO remove or use
-	// 17*2=34 bytes in SRAM
-	static int16_t _bias_PRF_16[17]; // TODO remove or use
-	// 17 bytes in SRAM
-	static char _bias_PRF_64[17]; // TODO remove or use
+		// FOR DEBUGGING
+		static void visualizeDatas(uint8_t datas[]);
 
-	// methods
-	static void handleSent();
-	static void handleReceived();
-	static void noteActivity();
-	static void resetInactive();
+	private:
+		// other devices in the network
+		static DW1000Device _networkDevices[MAX_DEVICES];
+		static volatile uint8_t _networkDevicesNumber;
+		static int16_t _lastDistantDevice;
+		static uint8_t _currentAddress[8];
+		static uint8_t _currentShortAddress[2];
+		static uint8_t _lastSentToShortAddress[2];
+		static DW1000Mac _globalMac;
+		static int32_t timer;
+		static int16_t counterForBlink;
 
-	// global functions:
-	static void checkForReset();
-	static void checkForInactiveDevices();
-	static void copyShortAddress(uint8_t address1[], uint8_t address2[]);
+		// Handlers:
+		static void (*_handleNewRange)(void);
+		static void (*_handleBlinkDevice)(DW1000Device *);
+		static void (*_handleNewDevice)(DW1000Device *);
+		static void (*_handleInactiveDevice)(DW1000Device *);
 
-	// for ranging protocole (ANCHOR)
-	static void transmitInit();
-	static void transmit(uint8_t datas[]);
-	static void transmit(uint8_t datas[], DW1000Time time);
-	static void transmitBlink();
-	static void transmitRangingInit(DW1000Device *myDistantDevice);
-	static void transmitPollAck(DW1000Device *myDistantDevice);
-	static void transmitRangeReport(DW1000Device *myDistantDevice);
-	static void transmitRangeFailed(DW1000Device *myDistantDevice);
-	static void receiver();
+		// sketch type (tag or anchor)
+		static int16_t _type; // 0 for tag and 1 for anchor
+		// TODO check type, maybe enum?
+		// message flow state
+		static volatile uint8_t _expectedMsgId;
+		// message sent/received state
+		static volatile uint8_t _sentAck;
+		static volatile uint8_t _receivedAck;
+		// protocol error state
+		static uint8_t _protocolFailed;
+		// reset line to the chip
+		static uint8_t _RST;
+		static uint8_t _SS;
+		// watchdog and reset period
+		static uint32_t _lastActivity;
+		static uint32_t _resetPeriod;
+		// reply times (same on both sides for symm. ranging)
+		static uint16_t _replyDelayTimeUS;
+		// timer Tick delay
+		static uint16_t _timerDelay;
+		// ranging counter (per second)
+		static uint16_t _successRangingCount;
+		static uint32_t _rangingCountPeriod;
+		// ranging filter
+		static volatile uint8_t _useRangeFilter;
+		static uint16_t _rangeFilterValue;
+		//_bias correction
+		static char _bias_RSL[17]; // TODO remove or use
+		// 17*2=34 bytes in SRAM
+		static int16_t _bias_PRF_16[17]; // TODO remove or use
+		// 17 bytes in SRAM
+		static char _bias_PRF_64[17]; // TODO remove or use
 
-	// for ranging protocole (TAG)
-	static void transmitPoll(DW1000Device *myDistantDevice);
-	static void transmitRange(DW1000Device *myDistantDevice);
+		// methods
+		static void handleSent();
+		static void handleReceived();
+		static void noteActivity();
+		static void resetInactive();
 
-	// methods for range computation
-	static void computeRangeAsymmetric(DW1000Device *myDistantDevice, DW1000Time *myTOF);
+		// global functions:
+		static void checkForReset();
+		static void checkForInactiveDevices();
+		static void copyShortAddress(uint8_t address1[], uint8_t address2[]);
 
-	static void timerTick();
+		// for ranging protocole (ANCHOR)
+		static void transmitInit();
+		static void transmit(uint8_t datas[]);
+		static void transmit(uint8_t datas[], DW1000Time time);
+		static void transmitBlink();
+		static void transmitRangingInit(DW1000Device *myDistantDevice);
+		static void transmitPollAck(DW1000Device *myDistantDevice);
+		static void transmitRangeReport(DW1000Device *myDistantDevice);
+		static void transmitRangeFailed(DW1000Device *myDistantDevice);
+		static void receiver();
 
-	// Utils
-	static float filterValue(float value, float previousValue, uint16_t numberOfElements);
-};
+		// for ranging protocole (TAG)
+		static void transmitPoll(DW1000Device *myDistantDevice);
+		static void transmitRange(DW1000Device *myDistantDevice);
 
-extern DW1000RangingClass DW1000Ranging;
+		// methods for range computation
+		static void computeRangeAsymmetric(DW1000Device *myDistantDevice, DW1000Time *myTOF);
 
+		static void timerTick();
+
+		// Utils
+		static float filterValue(float value, float previousValue, uint16_t numberOfElements);
+	};
+
+	extern DW1000RangingClass DW1000Ranging;
+
+#ifdef __cplusplus
+}
 #endif // __cplusplus
 
 #endif // _DW1000RANGING_H_

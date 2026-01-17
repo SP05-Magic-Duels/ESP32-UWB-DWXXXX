@@ -26,18 +26,18 @@
 
 // Constructor and destructor
 
-DW1000Mac::DW1000Mac()
+extern "C" DW1000Mac::DW1000Mac()
 {
 	_seqNumber = 0;
 }
 
-DW1000Mac::~DW1000Mac()
+extern "C" DW1000Mac::~DW1000Mac()
 {
 }
 
 // for poll message we use just 2 bytes address
 // total=12 bytes
-void DW1000Mac::generateBlinkFrame(uint8_t frame[], uint8_t sourceAddress[], uint8_t sourceShortAddress[])
+extern "C" void DW1000Mac::generateBlinkFrame(uint8_t frame[], uint8_t sourceAddress[], uint8_t sourceShortAddress[])
 {
 	// Frame Control
 	*frame = FC_1_BLINK;
@@ -60,7 +60,7 @@ void DW1000Mac::generateBlinkFrame(uint8_t frame[], uint8_t sourceAddress[], uin
 // the short fram usually for Resp, Final, or Report
 // 2 bytes for Desination Address and 2 bytes for Source Address
 // total=9 bytes
-void DW1000Mac::generateShortMACFrame(uint8_t frame[], uint8_t sourceShortAddress[], uint8_t destinationShortAddress[])
+extern "C" void DW1000Mac::generateShortMACFrame(uint8_t frame[], uint8_t sourceShortAddress[], uint8_t destinationShortAddress[])
 {
 	// Frame controle
 	*frame = FC_1;
@@ -88,7 +88,7 @@ void DW1000Mac::generateShortMACFrame(uint8_t frame[], uint8_t sourceShortAddres
 // the long frame for Ranging init
 // 8 bytes for Destination Address and 2 bytes for Source Address
 // total=15
-void DW1000Mac::generateLongMACFrame(uint8_t frame[], uint8_t sourceShortAddress[], uint8_t destinationAddress[])
+extern "C" void DW1000Mac::generateLongMACFrame(uint8_t frame[], uint8_t sourceShortAddress[], uint8_t destinationAddress[])
 {
 	// Frame controle
 	*frame = FC_1;
@@ -113,7 +113,7 @@ void DW1000Mac::generateLongMACFrame(uint8_t frame[], uint8_t sourceShortAddress
 	incrementSeqNumber();
 }
 
-void DW1000Mac::decodeBlinkFrame(uint8_t frame[], uint8_t address[], uint8_t shortAddress[])
+extern "C" void DW1000Mac::decodeBlinkFrame(uint8_t frame[], uint8_t address[], uint8_t shortAddress[])
 {
 	// we save the long address of the sender into the device. -- reverse direction
 	uint8_t reverseAddress[8];
@@ -125,7 +125,7 @@ void DW1000Mac::decodeBlinkFrame(uint8_t frame[], uint8_t address[], uint8_t sho
 	reverseArray(shortAddress, reverseShortAddress, 2);
 }
 
-void DW1000Mac::decodeShortMACFrame(uint8_t frame[], uint8_t address[])
+extern "C" void DW1000Mac::decodeShortMACFrame(uint8_t frame[], uint8_t address[])
 {
 	uint8_t reverseAddress[2];
 	memcpy(reverseAddress, frame + 7, 2);
@@ -135,7 +135,7 @@ void DW1000Mac::decodeShortMACFrame(uint8_t frame[], uint8_t address[])
 	// memcpy(destinationAddress, frame+5, 2);
 }
 
-void DW1000Mac::decodeLongMACFrame(uint8_t frame[], uint8_t address[])
+extern "C" void DW1000Mac::decodeLongMACFrame(uint8_t frame[], uint8_t address[])
 {
 	uint8_t reverseAddress[2];
 	memcpy(reverseAddress, frame + 13, 2);
@@ -145,7 +145,7 @@ void DW1000Mac::decodeLongMACFrame(uint8_t frame[], uint8_t address[])
 	// memcpy(destinationAddress, frame+5, 8);
 }
 
-void DW1000Mac::incrementSeqNumber()
+extern "C" void DW1000Mac::incrementSeqNumber()
 {
 	// normally overflow of uint8 automatically resets to 0 if over 255
 	// but if-clause seems safer way
@@ -155,7 +155,7 @@ void DW1000Mac::incrementSeqNumber()
 		_seqNumber++;
 }
 
-void DW1000Mac::reverseArray(uint8_t to[], uint8_t from[], int16_t size)
+extern "C" void DW1000Mac::reverseArray(uint8_t to[], uint8_t from[], int16_t size)
 {
 	for (int16_t i = 0; i < size; i++)
 	{

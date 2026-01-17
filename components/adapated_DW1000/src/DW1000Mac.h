@@ -26,6 +26,9 @@
 #define _DW1000MAC_H_INCLUDED
 
 #ifdef __cplusplus
+extern "C"
+{
+#endif
 
 #define FC_1 0x41
 #define FC_1_BLINK 0xC5
@@ -41,48 +44,50 @@
 #include "DW1000Device.h"
 #include "DW1000Ranging.h"
 
-class DW1000Device;
+	class DW1000Device;
 
-class DW1000Mac
-{
-public:
-	// Constructor and destructor
-	DW1000Mac(DW1000Device *parent);
-	DW1000Mac();
-	~DW1000Mac();
+	class DW1000Mac
+	{
+	public:
+		// Constructor and destructor
+		DW1000Mac(DW1000Device *parent);
+		DW1000Mac();
+		~DW1000Mac();
 
-	// setters
-	void setDestinationAddress(uint8_t *destinationAddress);
-	void setDestinationAddressShort(uint8_t *shortDestinationAddress);
-	void setSourceAddress(uint8_t *sourceAddress);
-	void setSourceAddressShort(uint8_t *shortSourceAddress);
+		// setters
+		void setDestinationAddress(uint8_t *destinationAddress);
+		void setDestinationAddressShort(uint8_t *shortDestinationAddress);
+		void setSourceAddress(uint8_t *sourceAddress);
+		void setSourceAddressShort(uint8_t *shortSourceAddress);
 
-	// for poll message we use just 2 bytes address
-	// total=12 bytes
-	void generateBlinkFrame(uint8_t frame[], uint8_t sourceAddress[], uint8_t sourceShortAddress[]);
+		// for poll message we use just 2 bytes address
+		// total=12 bytes
+		void generateBlinkFrame(uint8_t frame[], uint8_t sourceAddress[], uint8_t sourceShortAddress[]);
 
-	// the short fram usually for Resp, Final, or Report
-	// 2 bytes for Desination Address and 2 bytes for Source Address
-	// total=9 bytes
-	void generateShortMACFrame(uint8_t frame[], uint8_t sourceShortAddress[], uint8_t destinationShortAddress[]);
+		// the short fram usually for Resp, Final, or Report
+		// 2 bytes for Desination Address and 2 bytes for Source Address
+		// total=9 bytes
+		void generateShortMACFrame(uint8_t frame[], uint8_t sourceShortAddress[], uint8_t destinationShortAddress[]);
 
-	// the long frame for Ranging init
-	// 8 bytes for Destination Address and 2 bytes for Source Address
-	// total of
-	void generateLongMACFrame(uint8_t frame[], uint8_t sourceShortAddress[], uint8_t destinationAddress[]);
+		// the long frame for Ranging init
+		// 8 bytes for Destination Address and 2 bytes for Source Address
+		// total of
+		void generateLongMACFrame(uint8_t frame[], uint8_t sourceShortAddress[], uint8_t destinationAddress[]);
 
-	// in order to decode the frame and save source Address!
-	void decodeBlinkFrame(uint8_t frame[], uint8_t address[], uint8_t shortAddress[]);
-	void decodeShortMACFrame(uint8_t frame[], uint8_t address[]);
-	void decodeLongMACFrame(uint8_t frame[], uint8_t address[]);
+		// in order to decode the frame and save source Address!
+		void decodeBlinkFrame(uint8_t frame[], uint8_t address[], uint8_t shortAddress[]);
+		void decodeShortMACFrame(uint8_t frame[], uint8_t address[]);
+		void decodeLongMACFrame(uint8_t frame[], uint8_t address[]);
 
-	void incrementSeqNumber();
+		void incrementSeqNumber();
 
-private:
-	uint8_t _seqNumber = 0;
-	void reverseArray(uint8_t to[], uint8_t from[], int16_t size);
-};
+	private:
+		uint8_t _seqNumber = 0;
+		void reverseArray(uint8_t to[], uint8_t from[], int16_t size);
+	};
 
+#ifdef __cplusplus
+}
 #endif // __cplusplus
 
 #endif // _DW1000MAC_H_INCLUDED

@@ -22,6 +22,9 @@
 #define _DW1000CONSTANTS_H_INCLUDED
 
 #ifdef __cplusplus
+extern "C"
+{
+#endif
 
 // time stamp byte length
 #define LEN_STAMP 5
@@ -295,6 +298,8 @@
 #define GPIO_MODE 0
 #define LED_MODE 1
 
+#ifdef __cplusplus
+}
 #endif // __cplusplus
 
 #endif // _DW1000CONSTANTS_H_INCLUDED
