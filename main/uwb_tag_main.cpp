@@ -30,27 +30,27 @@ Adapted from Makerfabs -> example/tag/uwb_tag described in Caroline's notes
 
     extern "C" void newRange()
     {
-        // ESP_LOGI(MAIN_TAG, "from: ");
-        // ESP_LOGI(MAIN_TAG, "%X", DW1000Ranging.getDistantDevice()->getShortAddress());
-        // ESP_LOGI(MAIN_TAG, "\t Range: ");
-        // ESP_LOGI(MAIN_TAG, "%D", DW1000Ranging.getDistantDevice()->getRange());
-        // ESP_LOGI(MAIN_TAG, " m");
-        // ESP_LOGI(MAIN_TAG, "\t RX power: ");
-        // ESP_LOGI(MAIN_TAG, "%D", DW1000Ranging.getDistantDevice()->getRXPower());
-        // ESP_LOGI(MAIN_TAG, " dBm");
+        ESP_LOGI(MAIN_TAG, "from: ");
+        ESP_LOGI(MAIN_TAG, "%x", DW1000Ranging.getDistantDevice()->getShortAddress());
+        ESP_LOGI(MAIN_TAG, "\t Range: ");
+        ESP_LOGI(MAIN_TAG, "%f", DW1000Ranging.getDistantDevice()->getRange());
+        ESP_LOGI(MAIN_TAG, " m");
+        ESP_LOGI(MAIN_TAG, "\t RX power: ");
+        ESP_LOGI(MAIN_TAG, "%f", DW1000Ranging.getDistantDevice()->getRXPower());
+        ESP_LOGI(MAIN_TAG, " dBm");
     }
 
     extern "C" void newDevice(DW1000Device *device)
     {
-        // ESP_LOGI(MAIN_TAG, "ranging init; 1 device added ! -> ");
-        // ESP_LOGI(MAIN_TAG, " short:");
-        // ESP_LOGI(MAIN_TAG, "%X", device->getShortAddress());
+        ESP_LOGI(MAIN_TAG, "ranging init; 1 device added ! -> ");
+        ESP_LOGI(MAIN_TAG, " short:");
+        ESP_LOGI(MAIN_TAG, "%x", device->getShortAddress());
     }
 
     extern "C" void inactiveDevice(DW1000Device *device)
     {
-        // ESP_LOGI(MAIN_TAG, "delete inactive device: ");
-        // ESP_LOGI(MAIN_TAG, "%X", device->getShortAddress());
+        ESP_LOGI(MAIN_TAG, "delete inactive device: ");
+        ESP_LOGI(MAIN_TAG, "%x", device->getShortAddress());
     }
 
     extern "C" void setup()
