@@ -1,4 +1,16 @@
 #define DONT_COMPILE_BECAUSE_IT_DOESNT_WORK_YET_:C
+/**
+ * The dwt calls are from the decawave library from DW1000. These should work fine once we rewrite the readfromspi() and writetospi()
+ * functions that they depend on. The rest of the code is mostly math and stuff, I think.
+ * 
+ * What we need to do: (I think... I don't really know what I'm doing 🫠)
+ * 1) Replace the body of readfromspi()
+ * 2) Replace the body of writetospi()
+ * 3) Put back/integrate the rest of the MULoc and decawave libraries and code into the build
+ * 4) Deal with SPI initialization
+ * 5) Deal with any interrupt things we want to do
+ * 
+ */
 #ifndef DONT_COMPILE_BECAUSE_IT_DOESNT_WORK_YET_:C
 /*! ------------------------------------------------------------------------------------------------------------------
  * @file tag_main.c
@@ -10,28 +22,26 @@
  *--------------------------------------------------------------------------------------------------------------------
  */
 
- /*Includes*/
+ /*Includes*/ /*************************** I think we'd include most of these libraries for MULoc and the DW1000 
 #include "compiler.h"
-// #include "port.h"
+#include "port.h"
 
-// #include "deca_types.h" // Going through ESP-IDF DW libraries instead of directly to stm deca libraries?
-// #include "deca_regs.h"
+#include "deca_types.h"
+#include "deca_regs.h"
 
-// #include "deca_spi.h"
-// #include "dw_main.h"
-// #include "dwm1000_timestamp.h"
+#include "deca_spi.h"
+#include "dw_main.h"
+#include "dwm1000_timestamp.h"
 
-// #include "hal_led.h"
-// #include "hal_usb.h"
-// #include "hal_spi.h" // Using different version of HAL
-// #include "hal_usart.h"
+#include "hal_led.h"
+#include "hal_usb.h"
+#include "hal_spi.h"
+#include "hal_usart.h"
 
-// #include "bphero_uwb.h"
-
-#include "DW1000.h" // For config types
-#include <stdint.h> // added for types
+#include "bphero_uwb.h"
+*/      /************************************* But for now they're commented out */
 #include <math.h>
-#define RX_NODE // COMMENT THIS OUT IF NOT COMPILING FOR TAG
+#define RX_NODE // Delete later. We'd define & compile based on if we wanted a tag or anchor
 #ifdef RX_NODE
 
 extern void usb_run(void);
@@ -85,14 +95,14 @@ uint8_t phase_cal[ANCHOR_NUM];
 uint16_t maxGC[ANCHOR_NUM];
 uint8_t rxPC[ANCHOR_NUM];
 
-void dw_init(void) // Is this standard init? Check against ESP stuff. If it is, can replace with our init
+void dw_init(void)
 {
 	reset_DW1000();
 
 	// Config the SPI speed to 2 MHz
 	SPI_ConfigFastRate(SPI_BaudRatePrescaler_32);
 
-	// DW1000 Initialization //? Check if standard DW init from Deca
+	// DW1000 Initialization
 	if (dwt_initialise(DWT_LOADUCODE) == DWT_ERROR)
 	{
 		while (1)
@@ -138,10 +148,6 @@ int dw_main(void)
 	// The main loop
 	while (1)
 	{
-
-        ///// Get range and read. Check if this is same as Arduino/ESP ranging. If so, swap out. If not, need to port the functions for ESP.
-        // Actually for functions, since it all boils down to sending SPI commands to the DW1000, it does seem easier to just change that and leave most of this code alone
-        // could end up being similar to the Arduino one, though?
 		
         dwt_setpreambledetecttimeout(0); // Call to dwt_write16bit
 		/* Clear reception timeout to start next ranging process. */
@@ -151,8 +157,7 @@ int dw_main(void)
 		dwt_rxenable(DWT_START_RX_IMMEDIATE);
 
 		// Waiting for reception completion
-		// while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR)))
-        while (!((status_reg = readBytes(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR)))
+		while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR)))
 		{};
 
 		if (status_reg & SYS_STATUS_RXFCG)
@@ -190,11 +195,6 @@ int dw_main(void)
 			// Read max growth cir and rxPC for RSSI estimation
 			maxGC[current_tx] = dwt_read16bitoffsetreg(RX_FQUAL_ID, 0x6);
 			rxPC[current_tx] = (dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXPACC_MASK) >> RX_FINFO_RXPACC_SHIFT;
-
-            ///////? The above is all stuff to read from the DW device. Not sure if our libraries support this or if we'll need to port the calls. Check on that
-			
-            /////// Below here is doing math with the data. Shouldn't need to change much here
-            ////? Looks like they resend old data and only update one at a time, but not sure
 
             // Ranging finished, send the ranging data to SoC/PC over USB
 			if (ANCHOR_NUM == current_tx + 1)
@@ -284,9 +284,7 @@ int dw_main(void)
 				HalUsbWrite(usbVCOMout, n);
 				n = 0;
 
-                ////// End of calculating and sending estimates over USB
-
-				// Perform frequence hooping every two round of localization
+				// Perform frequency hopping every two round of localization
 				if (frame_seq_nb % 2 == 1)
 				{
 					if (frame_seq_nb % 4 == 1)
@@ -312,7 +310,7 @@ int dw_main(void)
 				}
 			}
 		}
-		else //// Reception error. And we're done!
+		else // Reception error
 		{
 			dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
 		}
