@@ -35,7 +35,7 @@ uint8_t DW1000Class::_irq;
 gpio_num_t DW1000Class::PIN_NUM_MISO = GPIO_NUM_19;
 gpio_num_t DW1000Class::PIN_NUM_MOSI = GPIO_NUM_23;
 gpio_num_t DW1000Class::PIN_NUM_CLK = GPIO_NUM_18;
-gpio_num_t DW1000Class::PIN_NUM_CS = GPIO_NUM_21;
+gpio_num_t DW1000Class::PIN_NUM_CS = GPIO_NUM_4;
 
 static spi_device_handle_t s_spi = nullptr;
 
@@ -118,7 +118,6 @@ const DW1000Class::SPISettings DW1000Class::_slowSPI = {2000000L, 1, 0x00};
 const DW1000Class::SPISettings *DW1000Class::_currentSPI = &_fastSPI;
 
 esp_err_t ret;
-spi_device_handle_t spi;
 
 /* ###########################################################################
  * #### Init and end #######################################################
@@ -206,7 +205,7 @@ extern "C" void DW1000Class::begin(uint8_t irq, uint8_t rst)
 	ret = spi_bus_initialize(ESP_HOST, &buscfg, SPI_DMA_CH_AUTO); // Initialize the SPI bus
 	ESP_ERROR_CHECK(ret);
 
-	ret = spi_bus_add_device(ESP_HOST, &devcfg, &spi); // Attach the Slave device to the SPI bus
+	ret = spi_bus_add_device(ESP_HOST, &devcfg, &s_spi); // Attach the Slave device to the SPI bus
 	ESP_ERROR_CHECK(ret);
 
 	// pin and basic member setup
@@ -2271,7 +2270,8 @@ extern "C" void DW1000Class::readBytes(uint8_t cmd, uint16_t offset, uint8_t dat
 	{
 		ESP_LOGE(SPI_TAG, "SPI read operation failed\n");
 	}
-	ESP_LOGI(SPI_TAG, "Data Read: %s\n", data);
+	ESP_LOGI(SPI_TAG, "Data Read:");
+	ESP_LOG_BUFFER_CHAR_LEVEL(SPI_TAG, data, sizeof(data) / sizeof(data[0]), ESP_LOG_WARN);
 	vTaskDelay(pdMS_TO_TICKS(1));
 	gpio_set_level(gpio_num_t(_ss), 1);
 }
@@ -2362,7 +2362,8 @@ extern "C" void DW1000Class::writeBytes(uint8_t cmd, uint16_t offset, uint8_t da
 		ESP_LOGE(SPI_TAG, "SPI Write operation failed\n");
 	}
 	free(tx);
-	ESP_LOGI(SPI_TAG, "Data Write: %s\n", data);
+	ESP_LOGI(SPI_TAG, "Data Write: ");
+	ESP_LOG_BUFFER_CHAR_LEVEL(SPI_TAG, data, sizeof(data) / sizeof(data[0]), ESP_LOG_WARN);
 	vTaskDelay(pdMS_TO_TICKS(1));
 	gpio_set_level(gpio_num_t(_ss), 1);
 }
