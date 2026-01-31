@@ -2294,7 +2294,6 @@ extern "C" void DW1000Class::readBytes(uint8_t cmd, uint16_t offset, uint8_t dat
 	// ESP_LOGI(SPI_TAG, "Data Read: %s\n", data);
 	ESP_LOGI(SPI_TAG, "Read Reg 0x%02X:", cmd);
 	ESP_LOG_BUFFER_HEXDUMP(SPI_TAG, data, n, ESP_LOG_INFO);
-	ESP_LOGI(SPI_TAG, "\n");
 	vTaskDelay(pdMS_TO_TICKS(1));
 	gpio_set_level(gpio_num_t(_ss), 1);
 }
@@ -2388,7 +2387,6 @@ extern "C" void DW1000Class::writeBytes(uint8_t cmd, uint16_t offset, uint8_t da
 	// ESP_LOGI(SPI_TAG, "Data Write: %s\n", data);
 	ESP_LOGI(SPI_TAG, "Write Reg 0x%02X:", cmd);
 	ESP_LOG_BUFFER_HEXDUMP(SPI_TAG, data, data_size, ESP_LOG_INFO);
-	ESP_LOGI(SPI_TAG, "\n");
 	vTaskDelay(pdMS_TO_TICKS(1));
 	gpio_set_level(gpio_num_t(_ss), 1);
 }

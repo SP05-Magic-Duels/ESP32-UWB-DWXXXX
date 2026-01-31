@@ -70,16 +70,12 @@ extern "C" void setup(void)
     DW1000.newConfiguration();
     DW1000.commitConfiguration();
 
-    // DW1000Ranging.attachNewRange(newRange);
-    // DW1000Ranging.attachNewDevice(newDevice);
-    // DW1000Ranging.attachInactiveDevice(inactiveDevice);
+    DW1000Ranging.attachNewRange(newRange);
+    DW1000Ranging.attachNewDevice(newDevice);
+    DW1000Ranging.attachInactiveDevice(inactiveDevice);
 
     // Enable the filter to smooth the distance
-    // DW1000Ranging.useRangeFilter(true);
-
-    // we start the module as a tag
-    // char *tag_address = "7D:00:22:EA:82:60:3B:9C";
-    // DW1000Ranging.startAsTag(tag_address, DW1000.MODE_LONGDATA_RANGE_LOWPOWER);
+    DW1000Ranging.useRangeFilter(true);
 }
 
 /**
@@ -105,6 +101,8 @@ extern "C" void app_main(void)
 
     // Initialize
     setup();
+    char *tag_address = "7D:00:22:EA:82:60:3B:9C";
+    DW1000Ranging.startAsTag(tag_address, DW1000.MODE_LONGDATA_RANGE_LOWPOWER);
 
     // Read Device ID
     ESP_LOGI(MAIN_TAG, "######### DW1000 TAG Device ID Test #########");
@@ -121,19 +119,15 @@ extern "C" void app_main(void)
     {
         ESP_LOGE(MAIN_TAG, "[FAILURE] Device ID is %s", msg);
     }
+    vTaskDelay(pdMS_TO_TICKS(1000));
 
-    while (1)
-    {
-        vTaskDelay(1000);
-    }
-
-    // xTaskCreate(&tag_loop,  // Function/ task
-    //             "tag_loop", // Name of the task (for human readability)
-    //             2048,       // Stack size (bytes)
-    //             NULL,       // &ucParameterToPass
-    //             1,          // Priority
-    //             NULL        // &xHandle
-    // );
+    xTaskCreate(&tag_loop,  // Function/ task
+                "tag_loop", // Name of the task (for human readability)
+                8192,       // Stack size (bytes)
+                NULL,       // &ucParameterToPass
+                1,          // Priority
+                NULL        // &xHandle
+    );
     return;
 }
 #endif
@@ -146,15 +140,48 @@ extern "C" void app_main(void)
 
 #if DEVICE_ANCHOR
 
-extern "C" void app_main(void)
+extern "C" void anchor_loop(void *pvParameters)
 {
-    setup();
-
     while (1)
     {
         DW1000Ranging.loop();
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
+}
 
+extern "C" void app_main(void)
+{
+    vTaskDelay(pdMS_TO_TICKS(1));
+
+    // Initialize
+    setup();
+    char *anchor_address = "82:17:5B:D5:A9:9A:E2:9C";
+    DW1000Ranging.startAsAnchor(anchor_address, DW1000.MODE_LONGDATA_RANGE_ACCURACY);
+
+    // Read Device ID
+    ESP_LOGI(MAIN_TAG, "######### DW1000 ANCHOR Device ID Test #########");
+    char msg[128];
+    DW1000.getPrintableDeviceIdentifier(msg);
+    ESP_LOGI(MAIN_TAG, "Raw Result: %s", msg);
+    // Check for success
+    if (msg[0] == 'D' && msg[1] == 'E')
+    {
+        ESP_LOGI(MAIN_TAG, "[SUCCESS] DW1000 Detected! ID: %s", msg);
+        ESP_LOGI(MAIN_TAG, "SPI wiring is correct.");
+    }
+    else
+    {
+        ESP_LOGE(MAIN_TAG, "[FAILURE] Device ID is %s", msg);
+    }
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    xTaskCreate(&tag_loop,  // Function/ task
+                "tag_loop", // Name of the task (for human readability)
+                8192,       // Stack size (bytes)
+                NULL,       // &ucParameterToPass
+                1,          // Priority
+                NULL        // &xHandle
+    );
     return;
 }
 #endif
