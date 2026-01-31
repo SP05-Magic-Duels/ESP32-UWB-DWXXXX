@@ -15,6 +15,9 @@ Adapted from Makerfabs -> example/tag/uwb_tag described in Caroline's notes
 #define DEVICE_TAG 1
 #define DEVICE_ANCHOR 0
 
+// Indicate log level for RW or debugging
+#define DEVICE_DEBUG 1
+
 #if DEVICE_TAG
 #define MAIN_TAG "TAG_MAIN"
 #elif DEVICE_ANCHOR
@@ -56,6 +59,11 @@ extern "C" void inactiveDevice(DW1000Device *device)
 extern "C" void setup(void)
 {
     vTaskDelay(pdMS_TO_TICKS(1));
+
+    if (DEVICE_DEBUG)
+        esp_log_level_set("*", ESP_LOG_DEBUG);
+    else
+        esp_log_level_set("*", ESP_LOG_INFO);
 
     DW1000Ranging.initCommunication(PIN_RST, PIN_SS, PIN_IRQ); // Reset, CS, IRQ pin
 

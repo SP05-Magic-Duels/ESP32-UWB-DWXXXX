@@ -1178,56 +1178,67 @@ extern "C" void DW1000Class::getPrintableDeviceMode(char msgBuffer[])
 
 extern "C" void DW1000Class::readSystemConfigurationRegister()
 {
+	ESP_LOGD(SPI_TAG, "######### Reading System Configuration Register #########");
 	readBytes(SYS_CFG, NO_SUB, _syscfg, LEN_SYS_CFG);
 }
 
 extern "C" void DW1000Class::writeSystemConfigurationRegister()
 {
+	ESP_LOGD(SPI_TAG, "######### Writing System Configuration Register #########");
 	writeBytes(SYS_CFG, NO_SUB, _syscfg, LEN_SYS_CFG);
 }
 
 extern "C" void DW1000Class::readSystemEventStatusRegister()
 {
+	ESP_LOGD(SPI_TAG, "######### Reading System Event Status Register #########");
 	readBytes(SYS_STATUS, NO_SUB, _sysstatus, LEN_SYS_STATUS);
 }
 
 extern "C" void DW1000Class::readNetworkIdAndDeviceAddress()
 {
+	ESP_LOGD(SPI_TAG, "######### Reading Network ID and Device Address #########");
 	readBytes(PANADR, NO_SUB, _networkAndAddress, LEN_PANADR);
 }
 
 extern "C" void DW1000Class::writeNetworkIdAndDeviceAddress()
 {
+	ESP_LOGD(SPI_TAG, "######### Writing Network ID and Device Address #########");
 	writeBytes(PANADR, NO_SUB, _networkAndAddress, LEN_PANADR);
 }
 
 extern "C" void DW1000Class::readSystemEventMaskRegister()
 {
+	ESP_LOGD(SPI_TAG, "######### Reading System Event Mask Register #########");
 	readBytes(SYS_MASK, NO_SUB, _sysmask, LEN_SYS_MASK);
 }
 
 extern "C" void DW1000Class::writeSystemEventMaskRegister()
 {
+	ESP_LOGD(SPI_TAG, "######### Writing System Event Mask Register #########");
 	writeBytes(SYS_MASK, NO_SUB, _sysmask, LEN_SYS_MASK);
 }
 
 extern "C" void DW1000Class::readChannelControlRegister()
 {
+	ESP_LOGD(SPI_TAG, "######### Reading Channel Control Register #########");
 	readBytes(CHAN_CTRL, NO_SUB, _chanctrl, LEN_CHAN_CTRL);
 }
 
 extern "C" void DW1000Class::writeChannelControlRegister()
 {
+	ESP_LOGD(SPI_TAG, "######### Writing Channel Control Register #########");
 	writeBytes(CHAN_CTRL, NO_SUB, _chanctrl, LEN_CHAN_CTRL);
 }
 
 extern "C" void DW1000Class::readTransmitFrameControlRegister()
 {
+	ESP_LOGD(SPI_TAG, "######### Reading Transmit Frame  Control Register #########");
 	readBytes(TX_FCTRL, NO_SUB, _txfctrl, LEN_TX_FCTRL);
 }
 
 extern "C" void DW1000Class::writeTransmitFrameControlRegister()
 {
+	ESP_LOGD(SPI_TAG, "######### Writing Transmit Frame  Control Register #########");
 	writeBytes(TX_FCTRL, NO_SUB, _txfctrl, LEN_TX_FCTRL);
 }
 
@@ -2280,8 +2291,10 @@ extern "C" void DW1000Class::readBytes(uint8_t cmd, uint16_t offset, uint8_t dat
 	{
 		ESP_LOGE(SPI_TAG, "SPI read operation failed\n");
 	}
-	ESP_LOGI(SPI_TAG, "Data Read:");
-	ESP_LOG_BUFFER_CHAR_LEVEL(SPI_TAG, data, sizeof(data) / sizeof(data[0]), ESP_LOG_WARN);
+	// ESP_LOGI(SPI_TAG, "Data Read: %s\n", data);
+	ESP_LOGI(SPI_TAG, "Read Reg 0x%02X:", cmd);
+	ESP_LOG_BUFFER_HEXDUMP(SPI_TAG, data, n, ESP_LOG_INFO);
+	ESP_LOGI(SPI_TAG, "\n");
 	vTaskDelay(pdMS_TO_TICKS(1));
 	gpio_set_level(gpio_num_t(_ss), 1);
 }
@@ -2372,8 +2385,10 @@ extern "C" void DW1000Class::writeBytes(uint8_t cmd, uint16_t offset, uint8_t da
 		ESP_LOGE(SPI_TAG, "SPI Write operation failed\n");
 	}
 	free(tx);
-	ESP_LOGI(SPI_TAG, "Data Write: ");
-	ESP_LOG_BUFFER_CHAR_LEVEL(SPI_TAG, data, sizeof(data) / sizeof(data[0]), ESP_LOG_WARN);
+	// ESP_LOGI(SPI_TAG, "Data Write: %s\n", data);
+	ESP_LOGI(SPI_TAG, "Write Reg 0x%02X:", cmd);
+	ESP_LOG_BUFFER_HEXDUMP(SPI_TAG, data, data_size, ESP_LOG_INFO);
+	ESP_LOGI(SPI_TAG, "\n");
 	vTaskDelay(pdMS_TO_TICKS(1));
 	gpio_set_level(gpio_num_t(_ss), 1);
 }
