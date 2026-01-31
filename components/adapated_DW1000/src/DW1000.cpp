@@ -39,6 +39,9 @@ gpio_num_t DW1000Class::PIN_NUM_CS = GPIO_NUM_21;
 
 static spi_device_handle_t s_spi = nullptr;
 
+/* Init ISR handler flag */
+volatile bool DW1000Class::_interruptPending = false;
+
 // IRQ callbacks
 void (*DW1000Class::_handleSent)(void) = 0;
 void (*DW1000Class::_handleError)(void) = 0;
@@ -180,6 +183,22 @@ extern "C" void DW1000Class::reselect(uint8_t ss)
 	gpio_set_level(PIN_NUM_CS, 1);
 }
 
+// Wrapper for interrupt handler
+extern "C" void IRAM_ATTR DW1000Class::isr_handler(void *arg)
+{
+	// Set handle flag
+	DW1000Class::_interruptPending = true;
+}
+// Wrapper for handling the isr flag once set
+extern "C" void DW1000Class::processInterrupt()
+{
+	if (DW1000Class::_interruptPending)
+	{
+		DW1000Class::_interruptPending = false;
+		DW1000Class::handleInterrupt();
+	}
+}
+
 extern "C" void DW1000Class::begin(uint8_t irq, uint8_t rst)
 {
 	vTaskDelay(pdMS_TO_TICKS(5)); // Initial init/wake-up-idle delay
@@ -223,10 +242,24 @@ extern "C" void DW1000Class::begin(uint8_t irq, uint8_t rst)
 	_irq = irq;
 
 	_deviceMode = IDLE_MODE;
-	// attach interrupt
-	// attachInterrupt(_irq, DW1000Class::handleInterrupt, CHANGE); // todo interrupt for ESP8266
-	// TODO throw error if pin is not a interrupt pin
-	// attachInterrupt(digitalPinToInterrupt(_irq), DW1000Class::handleInterrupt, RISING); // todo interrupt for ESP8266
+
+	// Attach interrupt
+	gpio_config_t io_conf = {};
+	io_conf.intr_type = GPIO_INTR_POSEDGE;		 // DW1000 fires IRQ on Rising Edge
+	io_conf.pin_bit_mask = (1ULL << _irq);		 // Bitmask for the IRQ pin
+	io_conf.mode = GPIO_MODE_INPUT;				 // Set as Input
+	io_conf.pull_down_en = GPIO_PULLDOWN_ENABLE; // Pull down so it doesn't float
+	io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+	gpio_config(&io_conf);
+
+	// Install the Global ISR Service (if not already installed)
+	// We use ESP_INTR_FLAG_IRAM to handle interrupts quickly in RAM
+	gpio_install_isr_service(ESP_INTR_FLAG_IRAM);
+
+	// Hook your wrapper function to the specific pin
+	gpio_isr_handler_add((gpio_num_t)_irq, DW1000Class::isr_handler, NULL);
+
+	ESP_LOGI(SPI_TAG, "DW1000 Interrupt attached to GPIO %d", _irq);
 }
 
 extern "C" void DW1000Class::manageLDE()
@@ -1190,7 +1223,7 @@ extern "C" void DW1000Class::writeSystemConfigurationRegister()
 
 extern "C" void DW1000Class::readSystemEventStatusRegister()
 {
-	ESP_LOGD(SPI_TAG, "######### Reading System Event Status Register #########");
+	// ESP_LOGD(SPI_TAG, "######### Reading System Event Status Register #########");
 	readBytes(SYS_STATUS, NO_SUB, _sysstatus, LEN_SYS_STATUS);
 }
 
@@ -2292,6 +2325,7 @@ extern "C" void DW1000Class::readBytes(uint8_t cmd, uint16_t offset, uint8_t dat
 		ESP_LOGE(SPI_TAG, "SPI read operation failed\n");
 	}
 	// ESP_LOGI(SPI_TAG, "Data Read: %s\n", data);
+	// Uncomment vvv for non interrupting calls
 	ESP_LOGI(SPI_TAG, "Read Reg 0x%02X:", cmd);
 	ESP_LOG_BUFFER_HEXDUMP(SPI_TAG, data, n, ESP_LOG_INFO);
 	vTaskDelay(pdMS_TO_TICKS(1));
@@ -2385,6 +2419,7 @@ extern "C" void DW1000Class::writeBytes(uint8_t cmd, uint16_t offset, uint8_t da
 	}
 	free(tx);
 	// ESP_LOGI(SPI_TAG, "Data Write: %s\n", data);
+	// Uncomment vvv for non interrupting calls
 	ESP_LOGI(SPI_TAG, "Write Reg 0x%02X:", cmd);
 	ESP_LOG_BUFFER_HEXDUMP(SPI_TAG, data, data_size, ESP_LOG_INFO);
 	vTaskDelay(pdMS_TO_TICKS(1));

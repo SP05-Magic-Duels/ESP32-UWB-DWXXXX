@@ -12,8 +12,8 @@ Adapted from Makerfabs -> example/tag/uwb_tag described in Caroline's notes
 #include "DW1000.h"
 
 // Indicate which device configuration to compile and flash
-#define DEVICE_TAG 1
-#define DEVICE_ANCHOR 0
+#define DEVICE_TAG 0
+#define DEVICE_ANCHOR 1
 
 // Indicate log level for RW or debugging
 #define DEVICE_DEBUG 1
@@ -75,7 +75,7 @@ extern "C" void setup(void)
     DW1000Ranging.attachInactiveDevice(inactiveDevice);
 
     // Enable the filter to smooth the distance
-    DW1000Ranging.useRangeFilter(true);
+    // DW1000Ranging.useRangeFilter(true);
 }
 
 /**
@@ -175,12 +175,12 @@ extern "C" void app_main(void)
     }
     vTaskDelay(pdMS_TO_TICKS(1000));
 
-    xTaskCreate(&tag_loop,  // Function/ task
-                "tag_loop", // Name of the task (for human readability)
-                8192,       // Stack size (bytes)
-                NULL,       // &ucParameterToPass
-                1,          // Priority
-                NULL        // &xHandle
+    xTaskCreate(&anchor_loop,  // Function/ task
+                "anchor_loop", // Name of the task (for human readability)
+                8192,          // Stack size (bytes)
+                NULL,          // &ucParameterToPass
+                1,             // Priority
+                NULL           // &xHandle
     );
     return;
 }

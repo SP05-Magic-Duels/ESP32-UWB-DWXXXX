@@ -419,6 +419,9 @@ extern "C" int16_t DW1000RangingClass::detectMessageType(uint8_t datas[])
 
 extern "C" void DW1000RangingClass::loop()
 {
+	// Process handler isr if interrupt flag raised
+	DW1000.processInterrupt();
+
 	// we check if needed to reset !
 	checkForReset();
 	uint32_t time = millis(); // TODO other name - too close to "timer"
@@ -512,6 +515,9 @@ extern "C" void DW1000RangingClass::loop()
 		// we read the datas from the modules:
 		//  get message and parse
 		DW1000.getData(data, LEN_DATA);
+
+		// ESP_LOGI("UWB_READ", "Received %d bytes:", LEN_DATA);
+		// ESP_LOG_BUFFER_HEXDUMP("UWB_DATA", data, LEN_DATA, ESP_LOG_INFO);
 
 		int messageType = detectMessageType(data);
 
