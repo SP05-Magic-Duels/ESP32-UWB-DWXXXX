@@ -177,10 +177,17 @@ extern "C" void app_main(void)
 
     xTaskCreate(&anchor_loop,  // Function/ task
                 "anchor_loop", // Name of the task (for human readability)
+<<<<<<< HEAD
                 8192,          // Stack size (bytes)
                 NULL,          // &ucParameterToPass
                 1,             // Priority
                 NULL           // &xHandle
+=======
+                8192,       // Stack size (bytes)
+                NULL,       // &ucParameterToPass
+                1,          // Priority
+                NULL        // &xHandle
+>>>>>>> 62c33a12b22300899be7cc4e2e8959646168dc27
     );
     return;
 }
