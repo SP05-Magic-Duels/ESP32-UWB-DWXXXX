@@ -56,7 +56,22 @@ extern "C" void inactiveDevice(DW1000Device *device)
     ESP_LOGI(MAIN_TAG, "%x", device->getShortAddress());
 }
 
-extern "C" void setup(void)
+extern "C" void newBlink(DW1000Device *device)
+{
+    ESP_LOGI(MAIN_TAG, "blink; 1 device added ! -> ");
+    ESP_LOGI(MAIN_TAG, " short:");
+    ESP_LOGI(MAIN_TAG, "%x", device->getShortAddress());
+}
+
+/**
+ *
+ * TAG
+ *
+ */
+
+#if DEVICE_TAG
+
+extern "C" void tag_setup(void)
 {
     vTaskDelay(pdMS_TO_TICKS(1));
 
@@ -78,14 +93,6 @@ extern "C" void setup(void)
     // DW1000Ranging.useRangeFilter(true);
 }
 
-/**
- *
- * TAG
- *
- */
-
-#if DEVICE_TAG
-
 extern "C" void tag_loop(void *pvParameters)
 {
     while (1)
@@ -100,9 +107,9 @@ extern "C" void app_main(void)
     vTaskDelay(pdMS_TO_TICKS(1));
 
     // Initialize
-    setup();
+    tag_setup();
     char *tag_address = "7D:00:22:EA:82:60:3B:9C";
-    DW1000Ranging.startAsTag(tag_address, DW1000.MODE_LONGDATA_RANGE_LOWPOWER);
+    DW1000Ranging.startAsTag(tag_address, DW1000.MODE_LONGDATA_RANGE_ACCURACY);
 
     // Read Device ID
     ESP_LOGI(MAIN_TAG, "######### DW1000 TAG Device ID Test #########");
@@ -140,6 +147,28 @@ extern "C" void app_main(void)
 
 #if DEVICE_ANCHOR
 
+extern "C" void anchor_setup(void)
+{
+    vTaskDelay(pdMS_TO_TICKS(1));
+
+    if (DEVICE_DEBUG)
+        esp_log_level_set("*", ESP_LOG_DEBUG);
+    else
+        esp_log_level_set("*", ESP_LOG_INFO);
+
+    DW1000Ranging.initCommunication(PIN_RST, PIN_SS, PIN_IRQ); // Reset, CS, IRQ pin
+
+    DW1000.newConfiguration();
+    DW1000.commitConfiguration();
+
+    DW1000Ranging.attachNewRange(newRange);
+    DW1000Ranging.attachBlinkDevice(newDevice);
+    DW1000Ranging.attachInactiveDevice(inactiveDevice);
+
+    // Enable the filter to smooth the distance
+    // DW1000Ranging.useRangeFilter(true);
+}
+
 extern "C" void anchor_loop(void *pvParameters)
 {
     while (1)
@@ -154,7 +183,10 @@ extern "C" void app_main(void)
     vTaskDelay(pdMS_TO_TICKS(1));
 
     // Initialize
-    setup();
+    anchor_setup();
+
+    DW1000Ranging.attachBlinkDevice(newBlink);
+
     char *anchor_address = "82:17:5B:D5:A9:9A:E2:9C";
     DW1000Ranging.startAsAnchor(anchor_address, DW1000.MODE_LONGDATA_RANGE_ACCURACY);
 
@@ -177,17 +209,10 @@ extern "C" void app_main(void)
 
     xTaskCreate(&anchor_loop,  // Function/ task
                 "anchor_loop", // Name of the task (for human readability)
-<<<<<<< HEAD
                 8192,          // Stack size (bytes)
                 NULL,          // &ucParameterToPass
                 1,             // Priority
                 NULL           // &xHandle
-=======
-                8192,       // Stack size (bytes)
-                NULL,       // &ucParameterToPass
-                1,          // Priority
-                NULL        // &xHandle
->>>>>>> 62c33a12b22300899be7cc4e2e8959646168dc27
     );
     return;
 }
