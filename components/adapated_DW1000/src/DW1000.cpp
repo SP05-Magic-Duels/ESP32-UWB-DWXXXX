@@ -35,7 +35,7 @@ uint8_t DW1000Class::_irq;
 gpio_num_t DW1000Class::PIN_NUM_MISO = GPIO_NUM_19;
 gpio_num_t DW1000Class::PIN_NUM_MOSI = GPIO_NUM_23;
 gpio_num_t DW1000Class::PIN_NUM_CLK = GPIO_NUM_18;
-gpio_num_t DW1000Class::PIN_NUM_CS = GPIO_NUM_4;
+gpio_num_t DW1000Class::PIN_NUM_CS = GPIO_NUM_21;
 
 static spi_device_handle_t s_spi = nullptr;
 
@@ -115,7 +115,7 @@ const DW1000Class::SPISettings DW1000Class::_fastSPI = {20000000L, 1, 0x00};
 const DW1000Class::SPISettings DW1000Class::_fastSPI = {16000000L, 1, 0x00};
 #endif
 const DW1000Class::SPISettings DW1000Class::_slowSPI = {2000000L, 1, 0x00};
-const DW1000Class::SPISettings *DW1000Class::_currentSPI = &_fastSPI;
+const DW1000Class::SPISettings *DW1000Class::_currentSPI = &_slowSPI; // Fast SPI is not working for some reason
 
 esp_err_t ret;
 
@@ -188,19 +188,29 @@ extern "C" void DW1000Class::begin(uint8_t irq, uint8_t rst)
 
 	spi_bus_config_t buscfg = {};
 	// Provide details to the SPI_bus_sturcture of pins and maximum data size
-	buscfg.miso_io_num = PIN_NUM_MISO;
-	buscfg.mosi_io_num = PIN_NUM_MOSI;
-	buscfg.sclk_io_num = PIN_NUM_CLK;
+	buscfg.miso_io_num = (int)PIN_NUM_MISO;
+	buscfg.mosi_io_num = (int)PIN_NUM_MOSI;
+	buscfg.sclk_io_num = (int)PIN_NUM_CLK;
 	buscfg.quadwp_io_num = -1;
 	buscfg.quadhd_io_num = -1;
-	buscfg.max_transfer_sz = 512 * 8; // 4095 bytes is the max size of data that can be sent because of hardware limitations
+	buscfg.max_transfer_sz = 4096; // or 2048
 
 	spi_device_interface_config_t devcfg = {};
 	// Configure device_structure
 	devcfg.clock_speed_hz = _currentSPI->clk_speed; // Clock out at _currentSPI speed
 	devcfg.mode = _currentSPI->spi_mode;			// SPI mode 0: CPOL:-0 and CPHA:-0
-	devcfg.spics_io_num = PIN_NUM_CS;				// This field is used to specify the GPIO pin that is to be used as CS'
+	devcfg.spics_io_num = (int)PIN_NUM_CS;			// This field is used to specify the GPIO pin that is to be used as CS'
 	devcfg.queue_size = 7;							// We want to be able to queue 7 transactions at a time
+
+	// Note: If it seems that the SPI bus is too slow, try raising the pins to max current
+	//		 in order to drive SPI at higher speeds (16 MHz)
+	// 		 Example:
+	//		 		 // Boost strengths of the pins to max level 3
+	//				 gpio_set_drive_capability((gpio_num_t)SPI_SCK, GPIO_DRIVE_CAP_3);
+
+	//		 GPIO Matrix vs. IOMUX for routing SPI signals
+	//		 IOMUX (SPI HW to Native pins, 80 MHz) whereas GPIO Matrix (routes through digital switchboard, to any pin)
+	//		 18, 19, 23 are native VSPI pins (IOMUX)
 
 	ret = spi_bus_initialize(ESP_HOST, &buscfg, SPI_DMA_CH_AUTO); // Initialize the SPI bus
 	ESP_ERROR_CHECK(ret);

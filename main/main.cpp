@@ -8,19 +8,12 @@ Adapted from Makerfabs -> example/tag/uwb_tag described in Caroline's notes
 */
 #include <stdint.h>
 
-// #include "esp_log.h"
-
 #include "DW1000Ranging.h"
 #include "DW1000.h"
 
 // Indicate which device configuration to compile and flash
 #define DEVICE_TAG 1
 #define DEVICE_ANCHOR 0
-
-// #define SPI_SCK 18
-// #define SPI_MISO 19
-// #define SPI_MOSI 23
-// #define SPI_CS 4
 
 #if DEVICE_TAG
 #define MAIN_TAG "TAG_MAIN"
@@ -63,10 +56,11 @@ extern "C" void inactiveDevice(DW1000Device *device)
 extern "C" void setup(void)
 {
     vTaskDelay(pdMS_TO_TICKS(1));
-    // init the configuration
-    //  SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI);
+
     DW1000Ranging.initCommunication(PIN_RST, PIN_SS, PIN_IRQ); // Reset, CS, IRQ pin
-    // define the sketch as anchor. It will be great to dynamically change the type of module
+
+    DW1000.newConfiguration();
+    DW1000.commitConfiguration();
 
     // DW1000Ranging.attachNewRange(newRange);
     // DW1000Ranging.attachNewDevice(newDevice);
@@ -76,7 +70,7 @@ extern "C" void setup(void)
     // DW1000Ranging.useRangeFilter(true);
 
     // we start the module as a tag
-    char *tag_address = "7D:00:22:EA:82:60:3B:9C";
+    // char *tag_address = "7D:00:22:EA:82:60:3B:9C";
     // DW1000Ranging.startAsTag(tag_address, DW1000.MODE_LONGDATA_RANGE_LOWPOWER);
 }
 
@@ -99,7 +93,31 @@ extern "C" void tag_loop(void *pvParameters)
 
 extern "C" void app_main(void)
 {
+    vTaskDelay(pdMS_TO_TICKS(1));
+
+    // Initialize
     setup();
+
+    // Read Device ID
+    ESP_LOGI(MAIN_TAG, "######### DW1000 TAG Device ID Test #########");
+    char msg[128];
+    DW1000.getPrintableDeviceIdentifier(msg);
+    ESP_LOGI(MAIN_TAG, "Raw Result: %s", msg);
+    // Check for success
+    if (msg[0] == 'D' && msg[1] == 'E')
+    {
+        ESP_LOGI(MAIN_TAG, "[SUCCESS] DW1000 Detected! ID: %s", msg);
+        ESP_LOGI(MAIN_TAG, "SPI wiring is correct.");
+    }
+    else
+    {
+        ESP_LOGE(MAIN_TAG, "[FAILURE] Device ID is %s", msg);
+    }
+
+    while (1)
+    {
+        vTaskDelay(1000);
+    }
 
     // xTaskCreate(&tag_loop,  // Function/ task
     //             "tag_loop", // Name of the task (for human readability)
