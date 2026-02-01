@@ -35,9 +35,12 @@ uint8_t DW1000Class::_irq;
 gpio_num_t DW1000Class::PIN_NUM_MISO = GPIO_NUM_19;
 gpio_num_t DW1000Class::PIN_NUM_MOSI = GPIO_NUM_23;
 gpio_num_t DW1000Class::PIN_NUM_CLK = GPIO_NUM_18;
-gpio_num_t DW1000Class::PIN_NUM_CS = GPIO_NUM_4;
+gpio_num_t DW1000Class::PIN_NUM_CS = GPIO_NUM_21;
 
 static spi_device_handle_t s_spi = nullptr;
+
+/* Init ISR handler flag */
+volatile bool DW1000Class::_interruptPending = false;
 
 // IRQ callbacks
 void (*DW1000Class::_handleSent)(void) = 0;
@@ -115,7 +118,7 @@ const DW1000Class::SPISettings DW1000Class::_fastSPI = {20000000L, 1, 0x00};
 const DW1000Class::SPISettings DW1000Class::_fastSPI = {16000000L, 1, 0x00};
 #endif
 const DW1000Class::SPISettings DW1000Class::_slowSPI = {2000000L, 1, 0x00};
-const DW1000Class::SPISettings *DW1000Class::_currentSPI = &_fastSPI;
+const DW1000Class::SPISettings *DW1000Class::_currentSPI = &_slowSPI; // Fast SPI is not working for some reason
 
 esp_err_t ret;
 
@@ -180,6 +183,22 @@ extern "C" void DW1000Class::reselect(uint8_t ss)
 	gpio_set_level(PIN_NUM_CS, 1);
 }
 
+// Wrapper for interrupt handler
+extern "C" void IRAM_ATTR DW1000Class::isr_handler(void *arg)
+{
+	// Set handle flag
+	DW1000Class::_interruptPending = true;
+}
+// Wrapper for handling the isr flag once set
+extern "C" void DW1000Class::processInterrupt()
+{
+	if (DW1000Class::_interruptPending)
+	{
+		DW1000Class::_interruptPending = false;
+		DW1000Class::handleInterrupt();
+	}
+}
+
 extern "C" void DW1000Class::begin(uint8_t irq, uint8_t rst)
 {
 	vTaskDelay(pdMS_TO_TICKS(5)); // Initial init/wake-up-idle delay
@@ -188,19 +207,29 @@ extern "C" void DW1000Class::begin(uint8_t irq, uint8_t rst)
 
 	spi_bus_config_t buscfg = {};
 	// Provide details to the SPI_bus_sturcture of pins and maximum data size
-	buscfg.miso_io_num = PIN_NUM_MISO;
-	buscfg.mosi_io_num = PIN_NUM_MOSI;
-	buscfg.sclk_io_num = PIN_NUM_CLK;
+	buscfg.miso_io_num = (int)PIN_NUM_MISO;
+	buscfg.mosi_io_num = (int)PIN_NUM_MOSI;
+	buscfg.sclk_io_num = (int)PIN_NUM_CLK;
 	buscfg.quadwp_io_num = -1;
 	buscfg.quadhd_io_num = -1;
-	buscfg.max_transfer_sz = 512 * 8; // 4095 bytes is the max size of data that can be sent because of hardware limitations
+	buscfg.max_transfer_sz = 4096; // or 2048
 
 	spi_device_interface_config_t devcfg = {};
 	// Configure device_structure
 	devcfg.clock_speed_hz = _currentSPI->clk_speed; // Clock out at _currentSPI speed
 	devcfg.mode = _currentSPI->spi_mode;			// SPI mode 0: CPOL:-0 and CPHA:-0
-	devcfg.spics_io_num = PIN_NUM_CS;				// This field is used to specify the GPIO pin that is to be used as CS'
+	devcfg.spics_io_num = (int)PIN_NUM_CS;			// This field is used to specify the GPIO pin that is to be used as CS'
 	devcfg.queue_size = 7;							// We want to be able to queue 7 transactions at a time
+
+	// Note: If it seems that the SPI bus is too slow, try raising the pins to max current
+	//		 in order to drive SPI at higher speeds (16 MHz)
+	// 		 Example:
+	//		 		 // Boost strengths of the pins to max level 3
+	//				 gpio_set_drive_capability((gpio_num_t)SPI_SCK, GPIO_DRIVE_CAP_3);
+
+	//		 GPIO Matrix vs. IOMUX for routing SPI signals
+	//		 IOMUX (SPI HW to Native pins, 80 MHz) whereas GPIO Matrix (routes through digital switchboard, to any pin)
+	//		 18, 19, 23 are native VSPI pins (IOMUX)
 
 	ret = spi_bus_initialize(ESP_HOST, &buscfg, SPI_DMA_CH_AUTO); // Initialize the SPI bus
 	ESP_ERROR_CHECK(ret);
@@ -213,10 +242,24 @@ extern "C" void DW1000Class::begin(uint8_t irq, uint8_t rst)
 	_irq = irq;
 
 	_deviceMode = IDLE_MODE;
-	// attach interrupt
-	// attachInterrupt(_irq, DW1000Class::handleInterrupt, CHANGE); // todo interrupt for ESP8266
-	// TODO throw error if pin is not a interrupt pin
-	// attachInterrupt(digitalPinToInterrupt(_irq), DW1000Class::handleInterrupt, RISING); // todo interrupt for ESP8266
+
+	// Attach interrupt
+	gpio_config_t io_conf = {};
+	io_conf.intr_type = GPIO_INTR_POSEDGE;		 // DW1000 fires IRQ on Rising Edge
+	io_conf.pin_bit_mask = (1ULL << _irq);		 // Bitmask for the IRQ pin
+	io_conf.mode = GPIO_MODE_INPUT;				 // Set as Input
+	io_conf.pull_down_en = GPIO_PULLDOWN_ENABLE; // Pull down so it doesn't float
+	io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+	gpio_config(&io_conf);
+
+	// Install the Global ISR Service (if not already installed)
+	// We use ESP_INTR_FLAG_IRAM to handle interrupts quickly in RAM
+	gpio_install_isr_service(ESP_INTR_FLAG_IRAM);
+
+	// Hook your wrapper function to the specific pin
+	gpio_isr_handler_add((gpio_num_t)_irq, DW1000Class::isr_handler, NULL);
+
+	ESP_LOGI(SPI_TAG, "DW1000 Interrupt attached to GPIO %d", _irq);
 }
 
 extern "C" void DW1000Class::manageLDE()
@@ -1168,56 +1211,67 @@ extern "C" void DW1000Class::getPrintableDeviceMode(char msgBuffer[])
 
 extern "C" void DW1000Class::readSystemConfigurationRegister()
 {
+	ESP_LOGD(SPI_TAG, "######### Reading System Configuration Register #########");
 	readBytes(SYS_CFG, NO_SUB, _syscfg, LEN_SYS_CFG);
 }
 
 extern "C" void DW1000Class::writeSystemConfigurationRegister()
 {
+	ESP_LOGD(SPI_TAG, "######### Writing System Configuration Register #########");
 	writeBytes(SYS_CFG, NO_SUB, _syscfg, LEN_SYS_CFG);
 }
 
 extern "C" void DW1000Class::readSystemEventStatusRegister()
 {
+	// ESP_LOGD(SPI_TAG, "######### Reading System Event Status Register #########");
 	readBytes(SYS_STATUS, NO_SUB, _sysstatus, LEN_SYS_STATUS);
 }
 
 extern "C" void DW1000Class::readNetworkIdAndDeviceAddress()
 {
+	ESP_LOGD(SPI_TAG, "######### Reading Network ID and Device Address #########");
 	readBytes(PANADR, NO_SUB, _networkAndAddress, LEN_PANADR);
 }
 
 extern "C" void DW1000Class::writeNetworkIdAndDeviceAddress()
 {
+	ESP_LOGD(SPI_TAG, "######### Writing Network ID and Device Address #########");
 	writeBytes(PANADR, NO_SUB, _networkAndAddress, LEN_PANADR);
 }
 
 extern "C" void DW1000Class::readSystemEventMaskRegister()
 {
+	ESP_LOGD(SPI_TAG, "######### Reading System Event Mask Register #########");
 	readBytes(SYS_MASK, NO_SUB, _sysmask, LEN_SYS_MASK);
 }
 
 extern "C" void DW1000Class::writeSystemEventMaskRegister()
 {
+	ESP_LOGD(SPI_TAG, "######### Writing System Event Mask Register #########");
 	writeBytes(SYS_MASK, NO_SUB, _sysmask, LEN_SYS_MASK);
 }
 
 extern "C" void DW1000Class::readChannelControlRegister()
 {
+	ESP_LOGD(SPI_TAG, "######### Reading Channel Control Register #########");
 	readBytes(CHAN_CTRL, NO_SUB, _chanctrl, LEN_CHAN_CTRL);
 }
 
 extern "C" void DW1000Class::writeChannelControlRegister()
 {
+	ESP_LOGD(SPI_TAG, "######### Writing Channel Control Register #########");
 	writeBytes(CHAN_CTRL, NO_SUB, _chanctrl, LEN_CHAN_CTRL);
 }
 
 extern "C" void DW1000Class::readTransmitFrameControlRegister()
 {
+	ESP_LOGD(SPI_TAG, "######### Reading Transmit Frame  Control Register #########");
 	readBytes(TX_FCTRL, NO_SUB, _txfctrl, LEN_TX_FCTRL);
 }
 
 extern "C" void DW1000Class::writeTransmitFrameControlRegister()
 {
+	ESP_LOGD(SPI_TAG, "######### Writing Transmit Frame  Control Register #########");
 	writeBytes(TX_FCTRL, NO_SUB, _txfctrl, LEN_TX_FCTRL);
 }
 
@@ -2270,8 +2324,10 @@ extern "C" void DW1000Class::readBytes(uint8_t cmd, uint16_t offset, uint8_t dat
 	{
 		ESP_LOGE(SPI_TAG, "SPI read operation failed\n");
 	}
-	ESP_LOGI(SPI_TAG, "Data Read:");
-	ESP_LOG_BUFFER_CHAR_LEVEL(SPI_TAG, data, sizeof(data) / sizeof(data[0]), ESP_LOG_WARN);
+	// ESP_LOGI(SPI_TAG, "Data Read: %s\n", data);
+	// Uncomment vvv for non interrupting calls
+	ESP_LOGI(SPI_TAG, "Read Reg 0x%02X:", cmd);
+	ESP_LOG_BUFFER_HEXDUMP(SPI_TAG, data, n, ESP_LOG_INFO);
 	vTaskDelay(pdMS_TO_TICKS(1));
 	gpio_set_level(gpio_num_t(_ss), 1);
 }
@@ -2362,8 +2418,10 @@ extern "C" void DW1000Class::writeBytes(uint8_t cmd, uint16_t offset, uint8_t da
 		ESP_LOGE(SPI_TAG, "SPI Write operation failed\n");
 	}
 	free(tx);
-	ESP_LOGI(SPI_TAG, "Data Write: ");
-	ESP_LOG_BUFFER_CHAR_LEVEL(SPI_TAG, data, sizeof(data) / sizeof(data[0]), ESP_LOG_WARN);
+	// ESP_LOGI(SPI_TAG, "Data Write: %s\n", data);
+	// Uncomment vvv for non interrupting calls
+	ESP_LOGI(SPI_TAG, "Write Reg 0x%02X:", cmd);
+	ESP_LOG_BUFFER_HEXDUMP(SPI_TAG, data, data_size, ESP_LOG_INFO);
 	vTaskDelay(pdMS_TO_TICKS(1));
 	gpio_set_level(gpio_num_t(_ss), 1);
 }
